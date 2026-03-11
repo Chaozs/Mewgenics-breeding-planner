@@ -9,7 +9,7 @@ type Props = {
   plannerLockMessage: string;
   analysisState: PlannerAnalysisState;
   followupInput: string;
-  onConfigChange: (key: "priorityOrder" | "roomAFocus" | "roomBFocus" | "roomCFocus" | "roomDFocus", value: string) => void;
+  onConfigChange: (key: "priorityOrder" | "roomAFocus" | "roomBFocus" | "roomCFocus" | "roomDFocus" | "additionalPromptInstructions", value: string) => void;
   onRoomEnabledChange: (key: "roomBEnabled" | "roomCEnabled" | "roomDEnabled", value: boolean) => void;
   onSkillMappingChange: (index: number, key: "source" | "target", value: string) => void;
   onAddSkillMapping: () => void;
@@ -156,6 +156,18 @@ export function PlannerSection(props: Props) {
                 </div>
               );
             })}
+          </section>
+
+          <section className="planner-customization-section">
+            <h3 className="section-label planner-subsection-title">Additional Prompt Instructions</h3>
+            <p className="field-help">Optional freeform instructions appended to the planner prompt. Example: <code>please keep at least 2 cats with reflect(eye)</code>.</p>
+            <textarea
+              rows={4}
+              disabled={plannerLocked}
+              placeholder="Add any extra planning constraints or instructions here..."
+              value={plannerConfig.additionalPromptInstructions}
+              onChange={(event) => onConfigChange("additionalPromptInstructions", event.target.value)}
+            />
           </section>
         </div>
       </details>

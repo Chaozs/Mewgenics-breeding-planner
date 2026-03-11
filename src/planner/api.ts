@@ -55,6 +55,7 @@ export async function loadPlannerConfigDefaults() {
     roomBFocus: String(data.defaultRoomBFocus || ""),
     roomCFocus: String(data.defaultRoomCFocus || ""),
     roomDFocus: String(data.defaultRoomDFocus || ""),
+    additionalPromptInstructions: String(data.defaultAdditionalPromptInstructions || ""),
     skillMappings: Array.isArray(data.defaultSkillMappings)
       ? (data.defaultSkillMappings as SkillMappingRow[])
       : [],

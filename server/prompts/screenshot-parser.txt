@@ -12,7 +12,10 @@ BreedWith should default to the opposite sex:
 - F cats -> M
 - ? cats -> ?
 
-If there is a rainbow icon, set BreedWith to "?" instead.
+If there is a rainbow icon beside the cat level / age area, set BreedWith to "?" instead.
+This is a hard override:
+- rainbow icon present -> BreedWith must be "?"
+- do not infer M or F in that case, even if the cat itself is male or female
 
 Gender should be "M" or "F" for male or female. Some cats are "?" and it should be set to "?"
 

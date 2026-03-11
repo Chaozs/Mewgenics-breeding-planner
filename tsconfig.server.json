@@ -12,5 +12,6 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["server/**/*.ts", "shared/**/*.ts"]
+  "include": ["server/**/*.ts", "shared/**/*.ts"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

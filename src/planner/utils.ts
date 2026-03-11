@@ -400,11 +400,63 @@ export function parseModelRowToEntry(rawRow: string, skillMappings: Map<string, 
     return {
       id: createEntryId(),
       room: detectedRoom,
-      columns: normalizeEntryColumns(columns, skillMappings),
+      columns: realignParsedMutationColumns(normalizeEntryColumns(columns, skillMappings)),
     };
   }
 
   throw new Error(`Parse output was not a valid ${EXPECTED_COLUMNS}-column row.`);
+}
+
+function realignParsedMutationColumns(columns: string[]) {
+  const nextColumns = [...columns];
+  const repairedMutationColumns = Array.from({ length: EXPECTED_COLUMNS - 10 }, () => "");
+
+  const placeMutationValue = (targetIndex: number, value: string) => {
+    const localIndex = targetIndex - 10;
+    if (localIndex < 0 || localIndex >= repairedMutationColumns.length) {
+      return false;
+    }
+    if (repairedMutationColumns[localIndex]) {
+      return false;
+    }
+    repairedMutationColumns[localIndex] = value;
+    return true;
+  };
+
+  for (let columnIndex = 10; columnIndex < EXPECTED_COLUMNS; columnIndex += 1) {
+    const value = nextColumns[columnIndex] ?? "";
+    if (!value) {
+      continue;
+    }
+
+    const bodyPartMatch = value.match(/^.+?\(([^()]+)\)$/);
+    const actualBodyPart = bodyPartMatch?.[1]?.trim().toLowerCase();
+    const candidateIndexes = actualBodyPart
+      ? [...MUTATION_COLUMN_BODY_PARTS.entries()]
+        .filter(([, bodyPart]) => bodyPart === actualBodyPart)
+        .map(([index]) => index)
+      : [];
+
+    let placed = false;
+    for (const candidateIndex of candidateIndexes) {
+      if (placeMutationValue(candidateIndex, value)) {
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      // GPT sometimes skips blank duplicate-body-part columns in the middle of the row.
+      // Fall back to the original slot for anything we cannot confidently re-home.
+      placeMutationValue(columnIndex, value);
+    }
+  }
+
+  for (let columnIndex = 10; columnIndex < EXPECTED_COLUMNS; columnIndex += 1) {
+    nextColumns[columnIndex] = repairedMutationColumns[columnIndex - 10];
+  }
+
+  return nextColumns;
 }
 
 export function parseStructuredAnalysis(text: string): StructuredAnalysis {
@@ -552,6 +604,33 @@ export function moveEntryToRoom(entries: Entry[], index: number, targetRoom: Roo
     }
   }
   nextEntries.splice(insertIndex, 0, entry);
+  return nextEntries;
+}
+
+export function insertEntryAtTopOfRoom(entries: Entry[], nextEntry: Entry) {
+  const nextEntries = entries.map((entry) => ({ ...entry, columns: [...entry.columns] }));
+  const firstRoomIndex = nextEntries.findIndex((entry) => entry.room === nextEntry.room);
+
+  if (firstRoomIndex >= 0) {
+    nextEntries.splice(firstRoomIndex, 0, nextEntry);
+    return nextEntries;
+  }
+
+  const roomOrderIndex = ROOM_ORDER.indexOf(nextEntry.room as (typeof ROOM_ORDER)[number]);
+  if (roomOrderIndex < 0) {
+    return [...nextEntries, nextEntry];
+  }
+
+  const insertIndex = nextEntries.findIndex((entry) => {
+    const existingRoomOrderIndex = ROOM_ORDER.indexOf(entry.room as (typeof ROOM_ORDER)[number]);
+    return existingRoomOrderIndex > roomOrderIndex;
+  });
+
+  if (insertIndex < 0) {
+    return [...nextEntries, nextEntry];
+  }
+
+  nextEntries.splice(insertIndex, 0, nextEntry);
   return nextEntries;
 }
 
@@ -709,6 +788,7 @@ export function buildPlannerConfigFromStored(raw: Partial<PlannerConfig>, defaul
     roomBFocus: raw.roomBFocus || defaults.roomBFocus,
     roomCFocus: raw.roomCFocus || defaults.roomCFocus,
     roomDFocus: raw.roomDFocus || defaults.roomDFocus,
+    additionalPromptInstructions: raw.additionalPromptInstructions || defaults.additionalPromptInstructions,
     roomBEnabled: typeof raw.roomBEnabled === "boolean" ? raw.roomBEnabled : defaults.roomBEnabled,
     roomCEnabled: typeof raw.roomCEnabled === "boolean" ? raw.roomCEnabled : defaults.roomCEnabled,
     roomDEnabled: typeof raw.roomDEnabled === "boolean" ? raw.roomDEnabled : defaults.roomDEnabled,

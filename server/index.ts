@@ -12,6 +12,7 @@ import {
   ANALYSIS_FIELD_ERRORS,
   CATS_CSV_PATH,
   DEFAULT_PRIORITY_ORDER,
+  DEFAULT_ADDITIONAL_PROMPT_INSTRUCTIONS,
   DEFAULT_ROOM_A_FOCUS,
   DEFAULT_ROOM_B_FOCUS,
   DEFAULT_ROOM_C_FOCUS,
@@ -41,6 +42,7 @@ type AnalysisRequestValues = {
   roomBFocus: string;
   roomCFocus: string;
   roomDFocus: string;
+  additionalPromptInstructions: string;
   skillMappings: string;
   followupRequest?: string;
   previousAnalysis?: string;
@@ -72,6 +74,10 @@ function buildPlannerPrompt(requestValues: AnalysisRequestValues, normalizedCats
   prompt = prompt.replace("<<ROOM_C_FOCUS>>", requestValues.roomCFocus);
   prompt = prompt.replace("<<ROOM_D_FOCUS>>", requestValues.roomDFocus);
   prompt = prompt.replace("<<CATS_DATA>>", normalizedCats);
+
+  if (requestValues.additionalPromptInstructions.trim()) {
+    prompt += `\n\nAdditional user instructions:\n${requestValues.additionalPromptInstructions.trim()}`;
+  }
 
   if (requestValues.followupRequest?.trim()) {
     prompt +=
@@ -175,6 +181,7 @@ function readAnalysisRequest(data: Record<string, unknown>, requireFollowup = fa
     roomBFocus: DEFAULT_ROOM_B_FOCUS,
     roomCFocus: DEFAULT_ROOM_C_FOCUS,
     roomDFocus: DEFAULT_ROOM_D_FOCUS,
+    additionalPromptInstructions: DEFAULT_ADDITIONAL_PROMPT_INSTRUCTIONS,
     skillMappings: DEFAULT_SKILL_MAPPINGS,
   };
 
@@ -352,6 +359,7 @@ app.get("/planner-config", (_request, response) => {
     defaultRoomBFocus: DEFAULT_ROOM_B_FOCUS,
     defaultRoomCFocus: DEFAULT_ROOM_C_FOCUS,
     defaultRoomDFocus: DEFAULT_ROOM_D_FOCUS,
+    defaultAdditionalPromptInstructions: DEFAULT_ADDITIONAL_PROMPT_INSTRUCTIONS,
     defaultSkillMappings: DEFAULT_SKILL_MAPPINGS,
   });
 });

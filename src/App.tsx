@@ -27,6 +27,7 @@ import {
   moveEntryByDrop,
   moveEntryToRoom,
   normalizeEntryColumnValue,
+  insertEntryAtTopOfRoom,
 } from "./planner/utils";
 
 type DropTarget = {
@@ -228,7 +229,7 @@ function App() {
       return;
     }
     const nextEntry = result.entry;
-    persistNextEntries([...parsedStored.rows, nextEntry], {
+    persistNextEntries(insertEntryAtTopOfRoom(parsedStored.rows, nextEntry), {
       title: "Cat Added",
       items: [`Added ${nextEntry.columns[0]} to ${nextEntry.room}.`],
       className: "move-section",

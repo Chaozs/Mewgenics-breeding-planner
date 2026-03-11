@@ -16,6 +16,7 @@ export function usePlannerConfigState() {
     roomBFocus: "",
     roomCFocus: "",
     roomDFocus: "",
+    additionalPromptInstructions: "",
     ...ROOM_ENABLE_DEFAULTS,
     skillMappings: [{ source: "", target: "" }],
   });
@@ -41,6 +42,7 @@ export function usePlannerConfigState() {
           roomBFocus: defaultsResponse.roomBFocus,
           roomCFocus: defaultsResponse.roomCFocus,
           roomDFocus: defaultsResponse.roomDFocus,
+          additionalPromptInstructions: defaultsResponse.additionalPromptInstructions,
           ...ROOM_ENABLE_DEFAULTS,
           skillMappings: parseSkillMappingsTextToRows(defaultsResponse.defaultSkillMappingsText),
         };

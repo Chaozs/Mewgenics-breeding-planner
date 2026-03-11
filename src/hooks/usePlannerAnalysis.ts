@@ -133,6 +133,7 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
         roomBFocus: plannerConfig.roomBEnabled ? plannerConfig.roomBFocus : "Disabled. Ignore Room B entirely in this analysis.",
         roomCFocus: plannerConfig.roomCEnabled ? plannerConfig.roomCFocus : "Disabled. Ignore Room C entirely in this analysis.",
         roomDFocus: plannerConfig.roomDEnabled ? plannerConfig.roomDFocus : "Disabled. Ignore Room D entirely in this analysis.",
+        additionalPromptInstructions: plannerConfig.additionalPromptInstructions,
         skillMappings: plannerConfig.skillMappings.map((row) => `${row.source} => ${row.target}`).join("\n"),
         ...(followupRequest.trim()
           ? {

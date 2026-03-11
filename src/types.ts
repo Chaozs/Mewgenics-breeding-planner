@@ -35,6 +35,7 @@ export type PlannerConfig = {
   roomBFocus: string;
   roomCFocus: string;
   roomDFocus: string;
+  additionalPromptInstructions: string;
   roomBEnabled: boolean;
   roomCEnabled: boolean;
   roomDEnabled: boolean;

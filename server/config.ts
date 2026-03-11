@@ -50,6 +50,7 @@ export const DEFAULT_ROOM_C_FOCUS =
   "Secondary incubator/preservation pool to hold niche mutation carriers, bridges, or backups that should not crowd final-injection lines.";
 export const DEFAULT_ROOM_D_FOCUS =
   "Overflow or experimental room for low-priority projects, cleanup candidates, and temporary tests before promoting cats into higher-priority rooms.";
+export const DEFAULT_ADDITIONAL_PROMPT_INSTRUCTIONS = "";
 export const DEFAULT_SKILL_MAPPINGS = `10% chance to reflect projectiles => reflect
 Your basic attack inflicts Leech => leech`;
 
@@ -59,6 +60,7 @@ export const ANALYSIS_DEFAULTS = {
   roomBFocus: DEFAULT_ROOM_B_FOCUS,
   roomCFocus: DEFAULT_ROOM_C_FOCUS,
   roomDFocus: DEFAULT_ROOM_D_FOCUS,
+  additionalPromptInstructions: DEFAULT_ADDITIONAL_PROMPT_INSTRUCTIONS,
   skillMappings: DEFAULT_SKILL_MAPPINGS,
 } as const;
 
@@ -68,5 +70,6 @@ export const ANALYSIS_FIELD_ERRORS = {
   roomBFocus: "Room B focus must be text.",
   roomCFocus: "Room C focus must be text.",
   roomDFocus: "Room D focus must be text.",
+  additionalPromptInstructions: "Additional prompt instructions must be text.",
   skillMappings: "Skill mappings must be text.",
 } as const;
