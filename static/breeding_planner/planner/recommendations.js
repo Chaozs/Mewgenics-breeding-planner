@@ -10,6 +10,32 @@ import {
     sendFollowupBtn,
 } from "./shared.js";
 
+let liveProgressList = null;
+let liveOutputPre = null;
+let liveOutputEmpty = null;
+
+function sanitizeLiveOutputText(text) {
+    return String(text || "").replace(/[*_]/g, "");
+}
+
+function resetLiveAnalysisRefs() {
+    liveProgressList = null;
+    liveOutputPre = null;
+    liveOutputEmpty = null;
+}
+
+function clearTargetContainer(target) {
+    if (!target) {
+        return false;
+    }
+    resetLiveAnalysisRefs();
+    target.innerHTML = "";
+    if ("hidden" in target) {
+        target.hidden = false;
+    }
+    return true;
+}
+
 export function appendInlineMarkdown(parent, text) {
     const tokenPattern = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
     const tokens = text.split(tokenPattern).filter((token) => token.length > 0);
@@ -173,11 +199,101 @@ export function hideFollowupPanel() {
     sendFollowupBtn.disabled = false;
 }
 
+export function startLiveAnalysisView(initialMessage = "Preparing planner analysis...") {
+    if (!resultStructured) {
+        return;
+    }
+
+    clearTargetContainer(resultStructured);
+    hideFollowupPanel();
+
+    const progressCard = document.createElement("section");
+    progressCard.className = "recommendation-card move-section";
+
+    const progressHeading = document.createElement("h3");
+    progressHeading.textContent = "Analysis Progress";
+    progressCard.appendChild(progressHeading);
+
+    liveProgressList = document.createElement("ul");
+    progressCard.appendChild(liveProgressList);
+    resultStructured.appendChild(progressCard);
+
+    const outputCard = document.createElement("section");
+    outputCard.className = "recommendation-card other-section";
+
+    const outputHeading = document.createElement("h3");
+    outputHeading.textContent = "Live Response";
+    outputCard.appendChild(outputHeading);
+
+    liveOutputEmpty = document.createElement("p");
+    liveOutputEmpty.className = "empty";
+    liveOutputEmpty.textContent = "Waiting for streamed output...";
+    outputCard.appendChild(liveOutputEmpty);
+
+    liveOutputPre = document.createElement("pre");
+    liveOutputPre.className = "stream-output";
+    liveOutputPre.hidden = true;
+    outputCard.appendChild(liveOutputPre);
+
+    resultStructured.appendChild(outputCard);
+    appendLiveAnalysisStatus(initialMessage);
+}
+
+export function appendLiveAnalysisStatus(message) {
+    if (!message) {
+        return;
+    }
+    if (!liveProgressList) {
+        startLiveAnalysisView();
+    }
+    if (!liveProgressList) {
+        return;
+    }
+
+    const lastItem = liveProgressList.lastElementChild;
+    if (lastItem?.textContent === message) {
+        return;
+    }
+
+    const item = document.createElement("li");
+    item.textContent = message;
+    liveProgressList.appendChild(item);
+}
+
+export function appendLiveAnalysisOutput(delta) {
+    if (!delta) {
+        return;
+    }
+    if (!liveOutputPre) {
+        startLiveAnalysisView();
+    }
+    if (!liveOutputPre) {
+        return;
+    }
+
+    if (liveOutputEmpty) {
+        liveOutputEmpty.hidden = true;
+    }
+    liveOutputPre.hidden = false;
+    liveOutputPre.textContent += sanitizeLiveOutputText(delta);
+}
+
+export function clearSectionStatus(target) {
+    if (!target) {
+        return;
+    }
+    target.innerHTML = "";
+    if ("hidden" in target) {
+        target.hidden = true;
+    }
+}
+
 export function renderStructuredAnalysis(text) {
     if (!resultStructured) {
         return;
     }
 
+    resetLiveAnalysisRefs();
     resultStructured.innerHTML = "";
     const parsed = parseStructuredAnalysis(text);
     const summaryLines = [...parsed.summary];
@@ -235,6 +351,7 @@ export function renderNoDataState(showWarning = false) {
         return;
     }
 
+    resetLiveAnalysisRefs();
     resultStructured.innerHTML = "";
     hideFollowupPanel();
 
@@ -255,29 +372,42 @@ export function clearRecommendations() {
     if (loading) {
         loading.style.display = "none";
     }
+    resetLiveAnalysisRefs();
     if (resultStructured) {
         resultStructured.innerHTML = "";
     }
     hideFollowupPanel();
 }
 
-export function renderValidationErrors(errors) {
-    if (!resultStructured) {
+export function renderValidationErrors(errors, options = {}) {
+    const {
+        target = resultStructured,
+        includeHowTo = target === resultStructured,
+    } = options;
+
+    if (!target) {
         return;
     }
 
-    resultStructured.innerHTML = "";
-    hideFollowupPanel();
-    resultStructured.appendChild(buildSectionCard("Invalid Spreadsheet Format", errors, "strong-section"));
-    resultStructured.appendChild(buildSectionCard("How to Use", NO_DATA_STEPS, "other-section"));
+    clearTargetContainer(target);
+    if (target === resultStructured) {
+        hideFollowupPanel();
+    }
+    target.appendChild(buildSectionCard("Invalid Spreadsheet Format", errors, "strong-section"));
+    if (includeHowTo) {
+        target.appendChild(buildSectionCard("How to Use", NO_DATA_STEPS, "other-section"));
+    }
 }
 
-export function renderStorageMessage(title, messages, cardClass = "other-section") {
-    if (!resultStructured) {
+export function renderStorageMessage(title, messages, cardClass = "other-section", options = {}) {
+    const { target = resultStructured } = options;
+    if (!target) {
         return;
     }
 
-    resultStructured.innerHTML = "";
-    hideFollowupPanel();
-    resultStructured.appendChild(buildSectionCard(title, messages, cardClass));
+    clearTargetContainer(target);
+    if (target === resultStructured) {
+        hideFollowupPanel();
+    }
+    target.appendChild(buildSectionCard(title, messages, cardClass));
 }

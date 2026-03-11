@@ -4,6 +4,7 @@ import {
     createColumnEditor,
     currentCatsView,
     DEFAULT_ROOM,
+    getDefaultBreedWithForGender,
     getOrderedRooms,
     groupEntriesByRoom,
     isStatColumn,
@@ -14,6 +15,7 @@ import {
     serializeEntries,
     state,
     normalizeEntryColumns,
+    validateMutationValue,
 } from "./shared.js";
 
 export function createCurrentCatsController(dependencies) {
@@ -36,12 +38,16 @@ export function createCurrentCatsController(dependencies) {
             "value-unknown",
             "trait-filled",
             "trait-empty",
+            "cell-invalid",
             "stat-good",
             "stat-bad",
         ];
 
         cell.classList.remove("stat-cell", ...styleClasses);
         editor.classList.remove(...styleClasses);
+        editor.removeAttribute("aria-invalid");
+        editor.removeAttribute("title");
+        cell.removeAttribute("title");
 
         const normalizedValue = String(value ?? "").trim();
         const normalizedUpper = normalizedValue.toUpperCase();
@@ -74,6 +80,15 @@ export function createCurrentCatsController(dependencies) {
                 editor.classList.add("trait-filled");
             } else {
                 editor.classList.add("trait-empty");
+            }
+
+            const mutationError = validateMutationValue(normalizedValue, columnIndex);
+            if (mutationError) {
+                cell.classList.add("cell-invalid");
+                editor.classList.add("cell-invalid");
+                editor.setAttribute("aria-invalid", "true");
+                editor.title = mutationError;
+                cell.title = mutationError;
             }
         }
     }
@@ -140,19 +155,62 @@ export function createCurrentCatsController(dependencies) {
         return select;
     }
 
-    function renderCurrentCatsView() {
+    function captureScrollState() {
+        if (!currentCatsView) {
+            return null;
+        }
+
+        return {
+            windowX: window.scrollX,
+            windowY: window.scrollY,
+            roomTableScroll: Array.from(currentCatsView.querySelectorAll(".cats-room[data-room] .cats-table-wrap")).map(
+                (tableWrap) => ({
+                    room: tableWrap.closest(".cats-room")?.dataset.room || "",
+                    left: tableWrap.scrollLeft,
+                    top: tableWrap.scrollTop,
+                })
+            ),
+        };
+    }
+
+    function restoreScrollState(scrollState) {
+        if (!currentCatsView || !scrollState) {
+            return;
+        }
+
+        scrollState.roomTableScroll.forEach(({ room, left, top }) => {
+            const tableWrap = currentCatsView.querySelector(`.cats-room[data-room="${room}"] .cats-table-wrap`);
+            if (tableWrap) {
+                tableWrap.scrollLeft = left;
+                tableWrap.scrollTop = top;
+            }
+        });
+
+        window.scrollTo(scrollState.windowX, scrollState.windowY);
+    }
+
+    function renderCurrentCatsView(options = {}) {
+        const { preserveScroll = false } = options;
         if (!currentCatsView) {
             return;
         }
 
+        const currentCatsPanel = currentCatsView.closest(".current-cats-panel");
+
+        const scrollState = preserveScroll ? captureScrollState() : null;
         currentCatsView.innerHTML = "";
         const { rows, invalidLines } = parseStoredEntries(getStoredCatsText());
+
+        if (currentCatsPanel) {
+            currentCatsPanel.classList.toggle("has-data", rows.length > 0);
+        }
 
         if (!rows.length) {
             const empty = document.createElement("p");
             empty.className = "empty";
             empty.textContent = "No browser data yet. Parse screenshots or import spreadsheet rows.";
             currentCatsView.appendChild(empty);
+            restoreScrollState(scrollState);
             return;
         }
 
@@ -251,6 +309,8 @@ export function createCurrentCatsController(dependencies) {
             invalid.textContent = `${invalidLines.length} line(s) were skipped because they are not valid 25-column rows.`;
             currentCatsView.appendChild(invalid);
         }
+
+        restoreScrollState(scrollState);
     }
 
     function moveEntryToRoom(entries, index, targetRoom) {
@@ -542,15 +602,24 @@ export function createCurrentCatsController(dependencies) {
         }
 
         const entry = entries[rowIndex];
+        const previousGender = entry.columns[1];
+        const previousBreedWith = entry.columns[2];
         const nextValue = normalizeColumnInputValue(columnIndex, editor.value);
 
         entry.columns[columnIndex] = nextValue;
+        if (columnIndex === 1) {
+            const previousDefaultBreedWith = getDefaultBreedWithForGender(previousGender);
+            if (!previousBreedWith || previousBreedWith === previousDefaultBreedWith) {
+                entry.columns[2] = getDefaultBreedWithForGender(nextValue);
+            }
+        }
         normalizeEntryColumns(entry.columns);
         applyCellValueStyling(editor.closest("td"), editor, columnIndex, entry.columns[columnIndex]);
 
         persistEntriesWithOptions(entries, {
             rerender: rerenderAfter,
             clearRecommendationsAfter: true,
+            preserveScroll: rerenderAfter,
         });
     }
 

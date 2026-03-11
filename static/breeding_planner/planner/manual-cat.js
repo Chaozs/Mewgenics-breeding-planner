@@ -17,8 +17,12 @@ import {
 import {
     COLUMN_KEYS,
     createColumnEditor,
+    getOpenAiUnavailableMessage,
+    getDefaultBreedWithForGender,
     getDefaultValueForColumn,
     getManualCatEntryFromFormData,
+    getSkillMappingsText,
+    isOpenAiFeatureEnabled,
     isHeaderRow,
     isRoomMarker,
     normalizeEntryColumns,
@@ -35,6 +39,7 @@ export function setManualParseStatus(message, isError = false) {
     if (!manualParseStatus) {
         return;
     }
+    manualParseStatus.hidden = false;
     manualParseStatus.textContent = message;
     manualParseStatus.classList.toggle("error", isError);
 }
@@ -68,6 +73,12 @@ export function resetManualParseSection() {
         manualParseFileInput.value = "";
     }
     clearManualParsePreview();
+    if (!isOpenAiFeatureEnabled()) {
+        if (manualParseStatus) {
+            manualParseStatus.hidden = true;
+        }
+        return;
+    }
     setManualParseStatus("Waiting for screenshot...");
 }
 
@@ -125,17 +136,17 @@ export function extractImageFromClipboardEvent(event) {
 export function parseModelRowToEntry(rawRow) {
     const lines = String(rawRow || "")
         .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
+        .filter((line) => line.trim().length > 0);
 
     let detectedRoom = DEFAULT_ROOM;
-    for (const line of lines) {
-        if (isRoomMarker(line)) {
-            detectedRoom = toRoomLabel(line);
+    for (const rawLine of lines) {
+        const trimmedLine = rawLine.trim();
+        if (isRoomMarker(trimmedLine)) {
+            detectedRoom = toRoomLabel(trimmedLine);
             continue;
         }
 
-        const columns = line.split("\t").map((value) => value.trim());
+        const columns = rawLine.split("\t").map((value) => value.trim());
         if (isHeaderRow(columns)) {
             continue;
         }
@@ -144,6 +155,12 @@ export function parseModelRowToEntry(rawRow) {
         if (columns.length === EXPECTED_COLUMNS + 1 && isRoomMarker(columns[0])) {
             detectedRoom = toRoomLabel(columns[0]);
             columns.shift();
+        }
+
+        // The model may omit trailing empty columns, especially when the last
+        // body-part slots are blank. Right-pad those missing cells here.
+        while (columns.length < EXPECTED_COLUMNS) {
+            columns.push("");
         }
 
         if (columns.length !== EXPECTED_COLUMNS) {
@@ -186,8 +203,38 @@ export function applyParsedEntryToManualForm(entry) {
     });
 }
 
+function syncManualBreedWithToGender(previousGender = "") {
+    if (!manualCatForm) {
+        return;
+    }
+
+    const genderControl = manualCatForm.querySelector('[name="gender"]');
+    const breedWithControl = manualCatForm.querySelector('[name="breed_with"]');
+    if (!genderControl || !breedWithControl) {
+        return;
+    }
+
+    const previousDefault = getDefaultBreedWithForGender(previousGender);
+    const currentBreedWith = String(breedWithControl.value ?? "").toUpperCase();
+    if (currentBreedWith && currentBreedWith !== previousDefault) {
+        return;
+    }
+
+    breedWithControl.value = getDefaultBreedWithForGender(genderControl.value);
+}
+
 export async function parseScreenshotForManualForm(file, options = {}) {
     const { keepCurrentForm = false } = options;
+
+    if (!isOpenAiFeatureEnabled()) {
+        if (!manualCatDialog?.open) {
+            openManualCatDialog();
+        }
+        if (manualParseStatus) {
+            manualParseStatus.hidden = true;
+        }
+        return;
+    }
 
     if (!file || !file.type.startsWith("image/")) {
         setManualParseStatus("Selected file is not an image.", true);
@@ -205,6 +252,7 @@ export async function parseScreenshotForManualForm(file, options = {}) {
     try {
         const formData = new FormData();
         formData.append("image", file, file.name || "screenshot.png");
+        formData.append("skillMappings", getSkillMappingsText());
 
         const response = await fetch("/parse", {
             method: "POST",
@@ -272,6 +320,19 @@ export function buildManualCatFields() {
         field.appendChild(control);
         manualCatFields.appendChild(field);
     });
+
+    if (manualCatForm) {
+        const genderControl = manualCatForm.querySelector('[name="gender"]');
+        if (genderControl) {
+            genderControl.addEventListener("change", (event) => {
+                syncManualBreedWithToGender(event.target.dataset.previousGender || "");
+                event.target.dataset.previousGender = String(event.target.value ?? "");
+            });
+            genderControl.dataset.previousGender = String(genderControl.value ?? "");
+        }
+    }
+
+    syncManualBreedWithToGender();
 }
 
 export function resetManualCatForm() {
@@ -291,6 +352,7 @@ export function resetManualCatForm() {
             control.value = getDefaultValueForColumn(index);
         }
     });
+    syncManualBreedWithToGender();
     setManualCatError("");
     resetManualParseSection();
 }
@@ -365,9 +427,14 @@ export function applyManualCatDraft(draft) {
             control.value = nextValue;
         }
     });
+    syncManualBreedWithToGender();
 
     const parseStatusText = typeof draft.parseStatusText === "string" ? draft.parseStatusText : "";
-    if (parseStatusText.trim()) {
+    if (!isOpenAiFeatureEnabled()) {
+        if (manualParseStatus) {
+            manualParseStatus.hidden = true;
+        }
+    } else if (parseStatusText.trim()) {
         setManualParseStatus(parseStatusText, Boolean(draft.parseStatusIsError));
     }
 

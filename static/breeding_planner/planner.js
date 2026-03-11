@@ -1,11 +1,15 @@
 import { createCurrentCatsController } from "./planner/current-cats.js";
-import { loadPlannerConfig, requestPlannerAnalysis } from "./planner/analysis.js";
+import { loadOpenAiStatus, loadPlannerConfig, savePlannerConfigValues, streamPlannerAnalysis } from "./planner/analysis.js";
 import {
+    appendLiveAnalysisOutput,
+    appendLiveAnalysisStatus,
     buildSectionCard,
+    clearSectionStatus,
     clearRecommendations,
     hideFollowupPanel,
     renderNoDataState,
     renderStorageMessage,
+    startLiveAnalysisView,
     renderStructuredAnalysis,
     renderValidationErrors,
 } from "./planner/recommendations.js";
@@ -13,6 +17,8 @@ import {
     ACTION_HISTORY_LIMIT,
     ACTION_LABELS,
     addCatBtn,
+    addSkillMappingRow,
+    addSkillMappingBtn,
     analyzeCatsBtn,
     catsImportInput,
     clearImportInputBtn,
@@ -20,13 +26,21 @@ import {
     clearStoredRowsBtn,
     closeManualCatBtn,
     currentCatsView,
+    currentCatsStatus,
     followupResponseInput,
     importPanel,
+    importStatus,
     loading,
     manualCatDialog,
     manualCatForm,
     manualParseDropzone,
     manualParseFileInput,
+    manualParseLockNotice,
+    manualParsePreview,
+    manualParseSection,
+    manualParseStatus,
+    plannerAiLockNotice,
+    plannerAiSection,
     resultStructured,
     saveImportToStorageBtn,
     sendFollowupBtn,
@@ -35,11 +49,16 @@ import {
     getStoredEntries,
     getStoredRowCount,
     PLANNER_CONFIG_FIELDS,
+    renderSkillMappingRows,
     serializeEntries,
+    skillMappingsList,
     state,
     undoActionBtn,
     updateStorageMeta,
     validateAndNormalizeCatsData,
+    getOpenAiUnavailableMessage,
+    isOpenAiFeatureEnabled,
+    setOpenAiAvailability,
 } from "./planner/shared.js";
 import {
     buildManualCatFields,
@@ -103,13 +122,14 @@ function persistEntriesWithOptions(entries, options = {}) {
     const {
         rerender = true,
         clearRecommendationsAfter = true,
+        preserveScroll = false,
     } = options;
 
     setStoredCatsText(serializeEntries(entries));
     updateStorageMeta();
 
     if (rerender) {
-        catsController.renderCurrentCatsView();
+        catsController.renderCurrentCatsView({ preserveScroll });
     }
     if (clearRecommendationsAfter) {
         clearAnalysisState();
@@ -137,7 +157,9 @@ function undoLastAction() {
         return;
     }
 
-    renderStorageMessage("Undo Applied", [`Reverted ${last.label}.`], "move-section");
+    renderStorageMessage("Undo Applied", [`Reverted ${last.label}.`], "move-section", {
+        target: currentCatsStatus,
+    });
 }
 
 function focusImportPanel() {
@@ -159,12 +181,85 @@ function showRequestError(message, title = "Error") {
     hideFollowupPanel();
 }
 
+function setPlannerAiLocked(locked, message = "") {
+    if (!plannerAiSection) {
+        return;
+    }
+
+    plannerAiSection.classList.toggle("feature-locked", locked);
+
+    if (plannerAiLockNotice) {
+        plannerAiLockNotice.hidden = !locked;
+        plannerAiLockNotice.textContent = locked ? message : "";
+    }
+
+    plannerAiSection.querySelectorAll("details").forEach((details) => {
+        details.classList.toggle("feature-locked-panel", locked);
+        if (locked) {
+            details.open = false;
+        }
+        const summary = details.querySelector("summary");
+        if (summary) {
+            summary.setAttribute("aria-disabled", locked ? "true" : "false");
+            summary.tabIndex = locked ? -1 : 0;
+        }
+    });
+
+    plannerAiSection
+        .querySelectorAll("textarea, input, select, button")
+        .forEach((control) => {
+            control.disabled = locked;
+        });
+
+    if (followupPanel) {
+        followupPanel.hidden = locked || followupPanel.hidden;
+    }
+}
+
+function setManualParseLocked(locked, message = "") {
+    if (manualParseSection) {
+        manualParseSection.classList.toggle("feature-locked", locked);
+    }
+    if (manualParseDropzone) {
+        manualParseDropzone.classList.toggle("feature-locked-dropzone", locked);
+    }
+    if (manualParsePreview) {
+        manualParsePreview.classList.toggle("feature-locked-preview", locked);
+    }
+    if (manualParseFileInput) {
+        manualParseFileInput.disabled = locked;
+    }
+    if (manualParseLockNotice) {
+        manualParseLockNotice.hidden = !locked;
+        manualParseLockNotice.textContent = locked ? message : "";
+    }
+    if (manualParseStatus) {
+        manualParseStatus.hidden = locked;
+    }
+    if (!locked) {
+        setManualParseStatus("Waiting for screenshot...");
+    }
+}
+
+function applyOpenAiStatus(status) {
+    const enabled = Boolean(status?.enabled);
+    const message = String(status?.message || "OpenAI features are unavailable.");
+    setOpenAiAvailability(enabled, message);
+    setPlannerAiLocked(!enabled, message);
+    setManualParseLocked(!enabled, message);
+}
+
 async function runAnalysis(endpoint, options = {}) {
     const {
         followupRequest = "",
         previousAnalysis = "",
         busyButton = null,
     } = options;
+
+    if (!isOpenAiFeatureEnabled()) {
+        showRequestError(getOpenAiUnavailableMessage(), followupRequest ? "Follow-up Disabled" : "Feature Disabled");
+        return;
+    }
 
     if (loading) {
         loading.style.display = "block";
@@ -175,12 +270,15 @@ async function runAnalysis(endpoint, options = {}) {
     if (resultStructured) {
         resultStructured.innerHTML = "";
     }
+    startLiveAnalysisView(followupRequest ? "Preparing follow-up analysis..." : "Preparing planner analysis...");
 
     try {
-        const result = await requestPlannerAnalysis({
+        const result = await streamPlannerAnalysis({
             endpoint,
             followupRequest,
             previousAnalysis,
+            onStatus: appendLiveAnalysisStatus,
+            onOutputDelta: appendLiveAnalysisOutput,
         });
 
         if (!result.ok) {
@@ -217,7 +315,9 @@ async function runAnalysis(endpoint, options = {}) {
 }
 
 async function analyzeCats() {
-    await runAnalysis("/analyze");
+    await runAnalysis("/analyze-stream", {
+        busyButton: analyzeCatsBtn,
+    });
 }
 
 async function submitFollowup() {
@@ -231,7 +331,7 @@ async function submitFollowup() {
         return;
     }
 
-    await runAnalysis("/analyze-followup", {
+    await runAnalysis("/analyze-followup-stream", {
         followupRequest: followupText,
         previousAnalysis: state.latestAnalysisText,
         busyButton: sendFollowupBtn,
@@ -254,18 +354,19 @@ if (saveImportToStorageBtn) {
             renderStorageMessage(
                 "No Import Data",
                 ["Paste spreadsheet rows in Import Excel Data before saving."],
-                "maybe-section"
+                "maybe-section",
+                { target: importStatus }
             );
             focusImportPanel();
             return;
         }
 
-        const validation = validateAndNormalizeCatsData(raw);
+        const validation = validateAndNormalizeCatsData(raw, { validateMutations: false });
         if (validation.errors.length > 0) {
             if (catsImportInput) {
                 catsImportInput.classList.add("input-error");
             }
-            renderValidationErrors(validation.errors);
+            renderValidationErrors(validation.errors, { target: importStatus, includeHowTo: false });
             focusImportPanel();
             return;
         }
@@ -273,6 +374,7 @@ if (saveImportToStorageBtn) {
         if (catsImportInput) {
             catsImportInput.classList.remove("input-error");
         }
+        clearSectionStatus(importStatus);
         setStoredCatsText(validation.normalizedCats);
         clearActionHistory();
         updateStorageMeta();
@@ -281,8 +383,18 @@ if (saveImportToStorageBtn) {
         renderStorageMessage(
             "Browser Data Updated",
             [`Saved ${getStoredRowCount()} row(s) to browser data.`],
-            "move-section"
+            "move-section",
+            { target: importStatus }
         );
+        if (validation.warnings.length > 0 && importStatus) {
+            importStatus.appendChild(
+                buildSectionCard(
+                    "Import Warnings",
+                    validation.warnings,
+                    "maybe-section"
+                )
+            );
+        }
     });
 }
 
@@ -292,6 +404,7 @@ if (clearImportInputBtn) {
             catsImportInput.value = "";
             catsImportInput.classList.remove("input-error");
         }
+        clearSectionStatus(importStatus);
         clearAnalysisState();
     });
 }
@@ -303,6 +416,9 @@ if (clearStoredRowsBtn) {
         updateStorageMeta();
         catsController.renderCurrentCatsView();
         state.latestAnalysisText = "";
+        renderStorageMessage("Browser Data Cleared", ["Removed all stored cat rows."], "maybe-section", {
+            target: currentCatsStatus,
+        });
         renderNoDataState();
     });
 }
@@ -373,7 +489,9 @@ if (manualCatForm) {
         clearManualCatDraft();
         resetManualCatForm();
         closeManualCatDialog();
-        renderStorageMessage("Cat Added", [`Added ${result.entry.columns[0]} to ${result.entry.room}.`], "move-section");
+        renderStorageMessage("Cat Added", [`Added ${result.entry.columns[0]} to ${result.entry.room}.`], "move-section", {
+            target: currentCatsStatus,
+        });
     });
 }
 
@@ -382,11 +500,13 @@ if (catsImportInput) {
         if (catsImportInput.value.trim()) {
             catsImportInput.classList.remove("input-error");
         }
+        clearSectionStatus(importStatus);
         clearAnalysisState();
     });
 
     catsImportInput.addEventListener("paste", () => {
         catsImportInput.classList.remove("input-error");
+        clearSectionStatus(importStatus);
         clearAnalysisState();
     });
 }
@@ -396,8 +516,49 @@ if (catsImportInput) {
     .forEach((element) => {
         element.addEventListener("input", () => {
             clearAnalysisState();
+            savePlannerConfigValues();
         });
     });
+
+if (addSkillMappingBtn) {
+    addSkillMappingBtn.addEventListener("click", () => {
+        if (!isOpenAiFeatureEnabled()) {
+            return;
+        }
+        addSkillMappingRow();
+        clearAnalysisState();
+        savePlannerConfigValues();
+    });
+}
+
+if (skillMappingsList) {
+    skillMappingsList.addEventListener("input", () => {
+        if (!isOpenAiFeatureEnabled()) {
+            return;
+        }
+        clearAnalysisState();
+        savePlannerConfigValues();
+    });
+
+    skillMappingsList.addEventListener("click", (event) => {
+        const removeButton = event.target.closest('[data-action="remove-skill-mapping"]');
+        if (!removeButton) {
+            return;
+        }
+
+        const row = removeButton.closest("[data-skill-mapping-row]");
+        if (!row) {
+            return;
+        }
+
+        row.remove();
+        if (!skillMappingsList.querySelector("[data-skill-mapping-row]")) {
+            renderSkillMappingRows();
+        }
+        clearAnalysisState();
+        savePlannerConfigValues();
+    });
+}
 
 if (manualParseFileInput) {
     manualParseFileInput.addEventListener("change", async (event) => {
@@ -448,6 +609,12 @@ document.addEventListener("paste", async (event) => {
         return;
     }
 
+    if (!isOpenAiFeatureEnabled()) {
+        event.preventDefault();
+        openManualCatDialog();
+        return;
+    }
+
     event.preventDefault();
     await parseScreenshotForManualForm(imageFile, { keepCurrentForm: Boolean(manualCatDialog?.open) });
 });
@@ -463,6 +630,14 @@ if (currentCatsView) {
 }
 
 buildManualCatFields();
+renderSkillMappingRows();
+loadOpenAiStatus()
+    .then((status) => {
+        applyOpenAiStatus(status);
+    })
+    .catch((err) => {
+        console.error(err);
+    });
 loadPlannerConfig().catch((err) => {
     console.error(err);
 });

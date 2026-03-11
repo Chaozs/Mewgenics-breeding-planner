@@ -14,9 +14,9 @@ export const COLUMN_DEFINITIONS = [
     {
         key: "breed_with",
         label: "BreedWith",
-        defaultValue: "X",
+        defaultValue: "",
         control: "select",
-        options: createSelectOptions(["X", "?", "M", "F"], { X: "x" }),
+        options: createSelectOptions(["", "?", "M", "F"], { "": "" }),
     },
     { key: "str", label: "Str", defaultValue: "0", control: "select", options: createSelectOptions(["0", "1"]) },
     { key: "dex", label: "Dex", defaultValue: "0", control: "select", options: createSelectOptions(["0", "1"]) },
@@ -25,21 +25,21 @@ export const COLUMN_DEFINITIONS = [
     { key: "move", label: "Move", defaultValue: "0", control: "select", options: createSelectOptions(["0", "1"]) },
     { key: "char", label: "Char", defaultValue: "0", control: "select", options: createSelectOptions(["0", "1"]) },
     { key: "luck", label: "Luck", defaultValue: "0", control: "select", options: createSelectOptions(["0", "1"]) },
-    { key: "body", label: "Body", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "head", label: "Head", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "tail", label: "Tail", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "leg_1", label: "Leg 1", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "leg_2", label: "Leg 2", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "arm_1", label: "Arm 1", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "arm_2", label: "Arm 2", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "eye_1", label: "Eye 1", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "eye_2", label: "Eye 2", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "eyebrow_1", label: "Eyebrow 1", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "eyebrow_2", label: "Eyebrow 2", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "ear_1", label: "Ear 1", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "ear_2", label: "Ear 2", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "mouth", label: "Mouth", defaultValue: "x", control: "text", placeholder: "x" },
-    { key: "fur", label: "Fur", defaultValue: "x", control: "text", placeholder: "x" },
+    { key: "body", label: "Body", defaultValue: "", control: "text", placeholder: "" },
+    { key: "head", label: "Head", defaultValue: "", control: "text", placeholder: "" },
+    { key: "tail", label: "Tail", defaultValue: "", control: "text", placeholder: "" },
+    { key: "leg_1", label: "Leg 1", defaultValue: "", control: "text", placeholder: "" },
+    { key: "leg_2", label: "Leg 2", defaultValue: "", control: "text", placeholder: "" },
+    { key: "arm_1", label: "Arm 1", defaultValue: "", control: "text", placeholder: "" },
+    { key: "arm_2", label: "Arm 2", defaultValue: "", control: "text", placeholder: "" },
+    { key: "eye_1", label: "Eye 1", defaultValue: "", control: "text", placeholder: "" },
+    { key: "eye_2", label: "Eye 2", defaultValue: "", control: "text", placeholder: "" },
+    { key: "eyebrow_1", label: "Eyebrow 1", defaultValue: "", control: "text", placeholder: "" },
+    { key: "eyebrow_2", label: "Eyebrow 2", defaultValue: "", control: "text", placeholder: "" },
+    { key: "ear_1", label: "Ear 1", defaultValue: "", control: "text", placeholder: "" },
+    { key: "ear_2", label: "Ear 2", defaultValue: "", control: "text", placeholder: "" },
+    { key: "mouth", label: "Mouth", defaultValue: "", control: "text", placeholder: "" },
+    { key: "fur", label: "Fur", defaultValue: "", control: "text", placeholder: "" },
 ];
 
 export const COLUMN_LABELS = COLUMN_DEFINITIONS.map((definition) => definition.label);
@@ -67,7 +67,7 @@ export function normalizeColumnInputValue(columnIndex, value) {
 
     if (columnIndex === 2) {
         nextValue = nextValue.toUpperCase();
-        return ["X", "M", "F", "?"].includes(nextValue) ? nextValue : "X";
+        return ["", "X", "M", "F", "?"].includes(nextValue) ? nextValue : "";
     }
 
     if (isStatColumn(columnIndex)) {

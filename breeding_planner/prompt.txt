@@ -7,7 +7,12 @@ Cat	Gender	BreedWith	Str	Dex	Health	Int	Move	Char	Luck	Body	Head	Tail	Leg	Leg	Ar
 
 M cats can only breed with F cats, and vice versa. ? cats can breed with either.
 
-If a cat's BreedWith category is specified (not x), it can only breed with the specified gender (for example: ?).
+By default, BreedWith should match the opposite sex:
+- M cats normally breed with F
+- F cats normally breed with M
+- ? cats normally breed with ?
+
+If BreedWith is explicitly set, use that value as the constraint instead.
 
 Your job is to help decide which cats should be removed or moved. Having a lot of cats costs resources.
 
@@ -18,6 +23,7 @@ Important concepts:
 For the 7 stats (Str, Dex, Health, Int, Move, Char, Luck), a child cat has a chance of getting each stat from either parent. If both parents have a 1 for a stat, the child is guaranteed to have it.
 
 For mutations, the child has a chance of getting mutations from either parent.
+Blank body-part cells mean that slot is empty.
 
 There are 4 rooms to sort the cats.
 
