@@ -3,5 +3,3 @@ cats.csv
 node_modules/
 .mewgenics-server.pid
 .mewgenics-server.log
-__pycache__/
-*.py[cod]

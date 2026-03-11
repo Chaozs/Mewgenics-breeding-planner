@@ -12,13 +12,13 @@ This app is designed to help you import, organize, review, and analyze Mewgenics
 
 You can paste tab-separated rows directly from Excel or another spreadsheet, validate them, and save them into browser storage.
 
-![Import Excel Data](docs/1_importData.png)
+![Import Excel Data](Docs/1_importData.png)
 
 ### 2. Add cats manually or from screenshots
 
 You can add a cat by filling fields manually, or use screenshot parsing to pre-fill the form when GPT features are enabled.
 
-![Add Cat](docs/2_AddCats.png)
+![Add Cat](Docs/2_AddCats.png)
 
 ### 3. Review and organize all current cats
 
@@ -31,15 +31,15 @@ Once cats are loaded, you can:
 - see invalid mutation warnings and priority mutation highlights
 - export the current data back into spreadsheet-ready text
 
-![Current Cat Rows](docs/3_CatsData.png)
+![Current Cat Rows](Docs/3_CatsData.png)
 
 ### 4. Customize how recommendations are generated
 
 You can control the planner by maintaining screenshot skill mappings, editing mutation priority order by body part, and defining what each room should focus on.
 
-![Planner Customization](docs/4_PlannerCustomization.png)
+![Planner Customization](Docs/4_PlannerCustomization.png)
 
-![Room Focus](docs/5_roomCustomization.png)
+![Room Focus](Docs/5_roomCustomization.png)
 
 ### 5. Generate structured recommendations
 
@@ -52,7 +52,7 @@ When GPT features are enabled, the app can analyze your current cats and produce
 
 Supported move and delete recommendations can be applied directly from the result cards, and then undone from the same output.
 
-![Recommendations](docs/6_recommendations.png)
+![Recommendations](Docs/6_recommendations.png)
 
 ## Requirements
 
