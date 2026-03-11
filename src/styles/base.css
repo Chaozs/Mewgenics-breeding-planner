@@ -1,0 +1,101 @@
+:root {
+  --bg-base: #0a0c0f;
+  --bg-elev: #11161d;
+  --bg-elev-2: #171f2a;
+  --panel: rgba(18, 24, 33, 0.84);
+  --panel-border: rgba(255, 255, 255, 0.1);
+  --text: #f4f2ec;
+  --muted: #b0b6c0;
+  --accent: #f2b35e;
+  --accent-strong: #d98b2f;
+  --accent-soft: rgba(242, 179, 94, 0.2);
+  --success: #56c49b;
+  --danger: #ff7e8f;
+  --warning: #ffcb72;
+  --info: #86baf8;
+  --radius: 16px;
+  --radius-sm: 11px;
+  --shadow: 0 22px 42px rgba(0, 0, 0, 0.4);
+  --cats-actions-width: 116px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: "Sora", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 10% -10%, rgba(242, 179, 94, 0.2), transparent 32%),
+    radial-gradient(circle at 90% 0%, rgba(86, 196, 155, 0.12), transparent 35%),
+    linear-gradient(165deg, #090b0e 0%, #0d1117 55%, #101722 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(transparent 97%, rgba(255, 255, 255, 0.02) 100%),
+    linear-gradient(90deg, transparent 97%, rgba(255, 255, 255, 0.02) 100%);
+  background-size: 22px 22px;
+  opacity: 0.35;
+}
+
+button,
+input,
+select,
+textarea,
+summary {
+  font-family: inherit;
+}
+
+textarea:focus,
+input:focus,
+select:focus,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgba(242, 179, 94, 0.7);
+  outline-offset: 2px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 90px;
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, rgba(11, 15, 22, 0.92), rgba(16, 22, 32, 0.92));
+  color: #f2f4f8;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+textarea.input-error {
+  border-color: rgba(255, 126, 143, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 126, 143, 0.35);
+}
+
+pre {
+  margin: 10px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e5e9f0;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 12.5px;
+}
+
+input[type="file"] {
+  width: 100%;
+  color: #d9dee6;
+  background: rgba(10, 14, 20, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 9px;
+}

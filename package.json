@@ -1,0 +1,38 @@
+{
+  "name": "mewgenics-breeding-planner",
+  "private": true,
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "Chaozs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "vite build",
+    "prestart": "npm run build",
+    "preview": "vite preview",
+    "start": "tsx server/index.ts",
+    "start:bg": "node server/scripts/start-detached.mjs",
+    "stop": "node server/scripts/stop-detached.mjs",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "openai": "^6.27.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.4",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.6.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.20.6",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

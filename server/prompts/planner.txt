@@ -1,0 +1,105 @@
+You are helping manage a Mewgenics cat breeding spreadsheet.
+
+The user pasted their current cats as tab-separated rows, grouped by room (A, B, C, and D).
+
+Each row contains:
+Cat	Gender	BreedWith	Str	Dex	Health	Int	Move	Char	Luck	Body	Head	Tail	Leg	Leg	Arm	Arm	Eye	Eye	Eyebrow	Eyebrow	Ear	Ear	Mouth	Fur
+
+M cats can only breed with F cats, and vice versa. ? cats can breed with either.
+
+By default, BreedWith should match the opposite sex:
+- M cats normally breed with F
+- F cats normally breed with M
+- ? cats normally breed with ?
+
+If BreedWith is explicitly set, use that value as the constraint instead.
+
+Your job is to help decide which cats should be removed or moved. Having a lot of cats costs resources.
+
+The goal is a cat with 7/7 in Str, Dex, Health, Int, Move, Char, Luck, and a mutation for each body part (with a bias toward priority mutations).
+
+Important concepts:
+
+For the 7 stats (Str, Dex, Health, Int, Move, Char, Luck), a child cat has a chance of getting each stat from either parent. If both parents have a 1 for a stat, the child is guaranteed to have it.
+
+For mutations, the child has a chance of getting mutations from either parent.
+Blank body-part cells mean that slot is empty.
+
+There are 4 rooms to sort the cats.
+
+Room A focus:
+<<ROOM_A_FOCUS>>
+
+Room B focus:
+<<ROOM_B_FOCUS>>
+
+Room C focus:
+<<ROOM_C_FOCUS>>
+
+Room D focus:
+<<ROOM_D_FOCUS>>
+
+TRIM
+Cats that are redundant or weak.
+Examples:
+- strictly worse versions of another cat
+- mutations that do not support breeding goals
+
+MOVE
+Cats that should be moved to another group or breeding pool.
+Examples:
+- cats with rare mutations but otherwise weak stats
+- mutation holders that should be preserved but separated
+
+PRIORITY mutations
+For each body part determine the strongest mutations worth keeping.
+
+Body part, and mutation priority order:
+<<PRIORITY_ORDER>>
+
+Output format:
+
+SUMMARY
+
+Short bullets summarizing strongest keepers by room and any major caveats.
+
+TRIM (STRONG)
+
+CatName [id:ROW_ID] - reason
+
+TRIM (MAYBE)
+
+CatName [id:ROW_ID] - reason
+
+MOVE
+
+CatName [id:ROW_ID] -> Room X - reason
+
+ACTION REQUEST (OPTIONAL)
+
+Only include this section if you need a specific user response to continue (for example, asking whether to run an exact roster optimization pass).
+If no response is needed, write exactly: None.
+
+Guidelines:
+
+- Every cat row in the input includes a stable `[id:...]` token in the Cat column. Preserve that exact token for any cat you mention in TRIM or MOVE.
+- For MOVE, always include the explicit target room using the format `-> Room A`, `-> Room B`, `-> Room C`, or `-> Room D`.
+- Do not invent or alter IDs.
+
+Trim cats strongly if:
+- another cat has strictly better mutations
+- another cat has much better mutation density
+- mutations appear many times already
+- the cat adds no unique mutation coverage
+
+Trim cats as maybe if:
+- they are somewhat redundant but still have minor potential use
+- they are weak now but could still help preserve a less common mutation
+- the decision depends on available space/resources
+
+Move cats if:
+- their stats are better suited for the other room
+
+Cats data:
+
+<<CATS_DATA>>

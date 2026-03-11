@@ -1,0 +1,59 @@
+@media (max-width: 720px) {
+  .skill-mapping-row {
+    grid-template-columns: 1fr;
+  }
+
+  .skill-mapping-arrow {
+    display: none;
+  }
+
+  .app-shell {
+    width: min(96vw, 1120px);
+    margin-top: 16px;
+  }
+
+  .planner-page .app-shell {
+    margin: 16px 0 40px;
+    padding: 0 8px;
+  }
+
+  .planner-page .planner-hero,
+  .planner-page .planner-centered,
+  .planner-page .app-shell > :not(.planner-hero):not(.planner-centered):not(.current-cats-panel) {
+    width: 100%;
+  }
+
+  .planner-page .current-cats-panel,
+  .planner-page .current-cats-panel.has-data {
+    width: auto;
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .topbar {
+    align-items: stretch;
+  }
+
+  .buttons {
+    flex-direction: column;
+  }
+
+  .buttons button,
+  .analyze-btn {
+    width: 100%;
+  }
+
+  .quickstart-step {
+    grid-template-columns: 30px minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .quickstart-step-number {
+    width: 30px;
+    height: 30px;
+  }
+}

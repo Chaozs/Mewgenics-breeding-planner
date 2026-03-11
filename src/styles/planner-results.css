@@ -1,0 +1,119 @@
+.analyze-btn {
+  min-width: 180px;
+  margin-top: 14px;
+}
+
+.planner-analyze-help {
+  margin-bottom: 0;
+}
+
+.followup-guidance {
+  margin-bottom: 10px;
+  background: rgba(134, 186, 248, 0.09);
+  border-color: rgba(134, 186, 248, 0.22);
+  color: #deebff;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: #f6ddb8;
+}
+
+.loading p {
+  margin: 0;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.22);
+  border-top: 3px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.followup-panel {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(14, 19, 28, 0.9);
+}
+
+.recommendation-card {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(13, 18, 26, 0.94), rgba(19, 27, 38, 0.96));
+}
+
+.recommendation-card h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.recommendation-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.recommendation-card li {
+  margin-bottom: 8px;
+}
+
+.recommendation-item-applied {
+  margin-left: -8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(86, 196, 155, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(86, 196, 155, 0.34);
+}
+
+.recommendation-action-btn {
+  margin-left: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.recommendation-action-btn.is-applied {
+  border-color: rgba(86, 196, 155, 0.48);
+  background: rgba(86, 196, 155, 0.18);
+}
+
+.strong-section {
+  border-left: 5px solid var(--danger);
+}
+
+.maybe-section {
+  border-left: 5px solid var(--warning);
+}
+
+.move-section {
+  border-left: 5px solid var(--info);
+}
+
+.other-section {
+  border-left: 5px solid #8e97a5;
+}
+
+.stream-output {
+  max-height: 320px;
+  overflow-y: auto;
+}

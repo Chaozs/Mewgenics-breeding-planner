@@ -1,6 +1,7 @@
 .env
+cats.csv
+node_modules/
+.mewgenics-server.pid
+.mewgenics-server.log
 __pycache__/
 *.py[cod]
-.venv/
-.pytest_cache/
-cats.csv

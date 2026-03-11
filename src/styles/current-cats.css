@@ -1,0 +1,510 @@
+.current-cats-status {
+  min-height: 96px;
+  align-content: start;
+}
+
+.storage-meta {
+  margin: 0;
+}
+
+.cats-filter-panel {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cats-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.cats-filter-grid input,
+.cats-filter-grid select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(11, 15, 22, 0.9);
+  color: var(--text);
+  padding: 8px;
+  font-size: 13px;
+}
+
+.cats-filter-actions {
+  margin-top: 10px;
+}
+
+.cats-filter-summary {
+  margin-bottom: 0;
+}
+
+.cats-view {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.cats-room {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 17, 24, 0.74);
+  padding: 10px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cats-room-title {
+  margin: 0 0 8px;
+  font-size: 0.98rem;
+  color: #f3d8ab;
+}
+
+.cats-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  max-height: min(65vh, 540px);
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.cats-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 12px;
+}
+
+.cats-table th,
+.cats-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 7px 8px;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.cats-table th {
+  text-align: left;
+  position: sticky;
+  top: 0;
+  background: rgba(25, 33, 45, 0.95);
+  color: #f6e1bf;
+}
+
+.cats-table th:first-child,
+.cats-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  width: var(--cats-actions-width);
+  min-width: var(--cats-actions-width);
+  max-width: var(--cats-actions-width);
+}
+
+.cats-table th:first-child {
+  left: 0;
+}
+
+.cats-table td:first-child {
+  background: rgba(18, 25, 35, 0.96);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.cats-table th:nth-child(2),
+.cats-table td:nth-child(2) {
+  position: sticky;
+  left: calc(var(--cats-actions-width) + 1px);
+  z-index: 5;
+  min-width: 132px;
+  max-width: 132px;
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.cats-table td:nth-child(2) {
+  background: rgba(16, 22, 32, 0.96);
+}
+
+.cats-table tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cats-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cats-table tbody tr.row-selected {
+  background: rgba(134, 186, 248, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(134, 186, 248, 0.35);
+}
+
+.cats-table tbody tr.row-selected td:first-child {
+  background: rgba(34, 52, 77, 0.96);
+}
+
+.cats-table tbody tr.row-selected td:nth-child(2) {
+  background: rgba(40, 60, 88, 0.96);
+}
+
+.cats-table tbody tr.row-selected .cats-actions-wrap {
+  background: rgba(88, 122, 170, 0.12);
+  border-radius: 10px;
+}
+
+.cats-table tbody tr.row-selected .row-action-btn {
+  background: rgba(120, 157, 210, 0.22);
+  border-color: rgba(170, 205, 255, 0.38);
+}
+
+.cats-table tbody tr.row-selected .row-action-btn:hover {
+  background: rgba(134, 186, 248, 0.3);
+}
+
+.cats-table tbody tr.row-selected td:nth-child(2) .cell-editor:not(.value-male):not(.value-female):not(.value-unknown):not(.trait-filled):not(.trait-empty):not(.priority-mutation-cell):not(.cell-invalid) {
+  background: rgba(68, 98, 142, 0.78);
+  border-color: rgba(170, 205, 255, 0.32);
+}
+
+.cats-table tbody tr.row-selected:hover {
+  background: rgba(134, 186, 248, 0.2);
+}
+
+.cats-table th:nth-child(3),
+.cats-table td:nth-child(3) {
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
+  text-align: center;
+}
+
+.cats-table th:nth-child(4),
+.cats-table td:nth-child(4) {
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  text-align: center;
+}
+
+.cats-table th:nth-child(4) {
+  white-space: normal;
+  line-height: 1.05;
+}
+
+.cats-table th:nth-child(n + 5):nth-child(-n + 11),
+.cats-table td:nth-child(n + 5):nth-child(-n + 11) {
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+  text-align: center;
+}
+
+.cats-table th:nth-child(n + 12),
+.cats-table td:nth-child(n + 12) {
+  width: 126px;
+  min-width: 126px;
+  max-width: 126px;
+}
+
+.cats-actions-col,
+.cats-actions-cell {
+  min-width: var(--cats-actions-width);
+}
+
+.cats-actions-cell.menu-open {
+  z-index: 40;
+  overflow: visible;
+}
+
+.cats-column-header.column-selected,
+.cats-table td.column-selected {
+  background: rgba(242, 179, 94, 0.3);
+}
+
+.cats-table td.column-selected {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 214, 138, 0.75),
+    inset 0 0 0 999px rgba(242, 179, 94, 0.16);
+}
+
+.cats-table td.cats-name-col.column-selected {
+  background: rgba(90, 67, 24, 0.96);
+}
+
+.cats-column-header.column-selected {
+  color: #fff4dd;
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 214, 138, 0.6),
+    inset 0 0 0 1px rgba(255, 214, 138, 0.4);
+}
+
+.column-select-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.column-select-btn:hover {
+  color: #fff6e1;
+}
+
+.cats-actions-wrap {
+  display: grid;
+  grid-template-columns: 28px max-content;
+  gap: 5px;
+  align-items: center;
+}
+
+.row-action-btn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row-action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.row-action-btn.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  height: 28px;
+  padding: 5px 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.row-drag-handle {
+  cursor: grab;
+  font-size: 12px;
+}
+
+.row-drag-handle:active {
+  cursor: grabbing;
+}
+
+.row-actions-menu-shell {
+  position: relative;
+  min-width: 0;
+  justify-self: start;
+}
+
+.row-actions-menu-shell.menu-open {
+  z-index: 41;
+}
+
+.row-actions-toggle {
+  width: auto;
+}
+
+.row-actions-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: calc(100% + 6px);
+  display: grid;
+  gap: 4px;
+  min-width: 132px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(13, 18, 26, 0.98);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+  z-index: 20;
+}
+
+.row-actions-menu.row-actions-menu-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.row-actions-menu[hidden] {
+  display: none;
+}
+
+.row-actions-menu-item {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 7px 8px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row-actions-menu-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.row-actions-menu-item.danger {
+  border-color: rgba(255, 126, 143, 0.45);
+  color: #ffd9df;
+}
+
+.row-actions-menu-item.danger:hover,
+.row-action-btn.danger:hover {
+  background: rgba(255, 126, 143, 0.2);
+}
+
+.row-action-btn.danger {
+  border-color: rgba(255, 126, 143, 0.45);
+  color: #ffd9df;
+}
+
+.cats-row.drag-source {
+  opacity: 0.5;
+}
+
+.cats-row.menu-open {
+  position: relative;
+  z-index: 45;
+}
+
+.cats-row.menu-open td:first-child {
+  z-index: 46;
+}
+
+.cats-row.menu-open td:nth-child(2) {
+  z-index: 45;
+}
+
+.cats-row.drop-target {
+  outline: 2px solid rgba(134, 186, 248, 0.85);
+  outline-offset: -2px;
+}
+
+.cats-row.drop-target.drop-after {
+  box-shadow: inset 0 -2px 0 rgba(134, 186, 248, 0.95);
+}
+
+.cats-room.drop-target-room {
+  border-color: rgba(242, 179, 94, 0.9);
+  background: rgba(43, 32, 14, 0.42);
+}
+
+.cell-editor {
+  width: 100%;
+  min-width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(14, 20, 30, 0.88);
+  color: var(--text);
+  padding: 4px 6px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.cats-name-col .cell-editor,
+.cats-table td:nth-child(n + 12) .cell-editor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cats-name-col .cell-editor:not(:focus),
+.cats-table td:nth-child(n + 12) .cell-editor:not(:focus) {
+  cursor: pointer;
+}
+
+.cats-name-col .cell-editor:focus,
+.cats-table td:nth-child(n + 12) .cell-editor:focus {
+  overflow: auto;
+  text-overflow: clip;
+}
+
+.cell-editor.stat-editor {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.stat-cell {
+  text-align: center;
+  font-weight: 700;
+}
+
+.stat-good {
+  background: rgba(86, 196, 155, 0.22);
+  color: #d8ffef;
+}
+
+.stat-bad {
+  background: rgba(255, 126, 143, 0.22);
+  color: #ffdce2;
+}
+
+.cell-editor.value-male {
+  background: rgba(96, 165, 250, 0.28);
+  border-color: rgba(96, 165, 250, 0.55);
+  color: #f0f7ff;
+}
+
+.cell-editor.value-female {
+  background: rgba(244, 114, 182, 0.28);
+  border-color: rgba(244, 114, 182, 0.55);
+  color: #fff1f8;
+}
+
+.cell-editor.value-unknown {
+  background: rgba(250, 204, 21, 0.26);
+  border-color: rgba(250, 204, 21, 0.55);
+  color: #fff8db;
+}
+
+.cell-editor.trait-filled {
+  background: rgba(86, 196, 155, 0.24);
+  border-color: rgba(86, 196, 155, 0.55);
+  color: #e6fff5;
+}
+
+.cell-editor.priority-mutation-cell,
+.cats-table td.priority-mutation-cell {
+  background: rgba(242, 179, 94, 0.26);
+  border-color: rgba(242, 179, 94, 0.72);
+  color: #fff4dd;
+}
+
+.cell-editor.trait-empty {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #d0d5de;
+}
+
+.cats-table td.cell-invalid {
+  background: rgba(96, 24, 39, 0.48);
+}
+
+.cell-editor.cell-invalid {
+  border-color: rgba(255, 126, 143, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 126, 143, 0.28);
+  background: linear-gradient(180deg, rgba(67, 24, 35, 0.95), rgba(47, 18, 28, 0.95));
+}
