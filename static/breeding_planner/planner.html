@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mewgenics Breeding Planner</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body class="planner-page">
+  <main class="app-shell">
+    <header class="panel topbar planner-hero">
+      <div>
+        <p class="eyebrow">Mewgenics Toolkit</p>
+        <h1>Mewgenics Breeding Planner</h1>
+        <p class="subtitle">Organize cats, adjust mutation priorities, and review structured trim/move recommendations.</p>
+      </div>
+    </header>
+
+    <details id="importPanel" class="panel import-panel planner-centered">
+      <summary class="import-summary">Import Excel Data</summary>
+      <div class="import-content">
+        <label class="section-label" for="catsImportInput">Paste Spreadsheet Rows</label>
+        <p class="field-help">Paste spreadsheet rows here, then click Save to Browser Data.</p>
+        <textarea id="catsImportInput" rows="14"></textarea>
+        <p class="field-help">Required format: tab-separated rows with 25 columns per cat (Cat through Fur). Room labels like A/B/C/D are allowed.</p>
+        <div class="buttons compact">
+          <button id="saveImportToStorageBtn" type="button" class="primary-btn">Save to Browser Data</button>
+          <button id="clearImportInputBtn" type="button" class="secondary-btn">Clear Pasted Data</button>
+        </div>
+      </div>
+    </details>
+
+    <section class="panel current-cats-panel">
+      <label class="section-label">Current Cat Rows (From Browser Data)</label>
+      <p class="field-help">Use row actions to reorder cats, move between Room A/B/C/D, or delete cats.</p>
+      <div class="buttons compact">
+        <button id="addCatBtn" type="button" class="primary-btn">Add Cat</button>
+        <button id="undoActionBtn" type="button" class="secondary-btn" disabled>Undo</button>
+        <button id="clearStoredRowsBtn" type="button" class="secondary-btn">Clear Browser Data</button>
+      </div>
+      <p id="plannerStorageMeta" class="field-help storage-meta">Browser storage: 0 rows.</p>
+      <div id="currentCatsView" class="cats-view"></div>
+    </section>
+
+    <section class="panel planner-centered">
+      <h2 class="section-title">Recommendation Customization</h2>
+      <label class="section-label" for="priorityOrderInput">Mutation priority order</label>
+      <p class="field-help">Edit this before Analyze to customize how priorities are evaluated.</p>
+      <textarea id="priorityOrderInput" rows="10"></textarea>
+
+      <label class="section-label" for="roomAFocusInput">Room A focus</label>
+      <p class="field-help">Describe what Room A should optimize for in recommendations.</p>
+      <textarea id="roomAFocusInput" rows="4"></textarea>
+
+      <label class="section-label" for="roomBFocusInput">Room B focus</label>
+      <p class="field-help">Describe what Room B should optimize for in recommendations.</p>
+      <textarea id="roomBFocusInput" rows="4"></textarea>
+
+      <label class="section-label" for="roomCFocusInput">Room C focus</label>
+      <p class="field-help">Describe what Room C should optimize for in recommendations.</p>
+      <textarea id="roomCFocusInput" rows="4"></textarea>
+
+      <label class="section-label" for="roomDFocusInput">Room D focus</label>
+      <p class="field-help">Describe what Room D should optimize for in recommendations.</p>
+      <textarea id="roomDFocusInput" rows="4"></textarea>
+    </section>
+
+    <section class="panel planner-centered">
+      <h2 class="section-title">ChatGPT Planner Recommendation</h2>
+      <button id="analyzeCatsBtn" class="primary-btn analyze-btn" type="button">Analyze Cats</button>
+
+      <div id="loading" class="loading" style="display:none">
+        <p>Analyzing cats...</p>
+        <div class="spinner"></div>
+      </div>
+
+      <div id="resultStructured" class="recommendation-grid"></div>
+
+      <section id="followupPanel" class="followup-panel" hidden>
+        <h3 class="section-label">Planner Follow-up</h3>
+        <p id="followupPromptText" class="field-help"></p>
+        <textarea id="followupResponseInput" rows="4" placeholder="Type your response to continue..."></textarea>
+        <div class="buttons compact">
+          <button id="sendFollowupBtn" type="button" class="primary-btn">Send Follow-up</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="manualCatDialog" class="manual-cat-dialog">
+    <form id="manualCatForm" class="manual-cat-form">
+      <h3 class="section-title">Add Cat</h3>
+      <p class="field-help">Fill in all fields, then add the cat to browser data.</p>
+      <section class="manual-dialog-group">
+        <label class="section-label" for="manualParseFileInput">Upload screenshot</label>
+        <div id="manualParseDropzone" class="dropzone">
+          <p><strong>Paste, drag and drop, or choose a screenshot</strong></p>
+          <input id="manualParseFileInput" type="file" accept="image/png,image/jpeg,image/webp" />
+        </div>
+        <div id="manualParseStatus" class="status">Waiting for screenshot...</div>
+
+        <label class="section-label">Preview</label>
+        <div id="manualParsePreview" class="preview"></div>
+      </section>
+
+      <section class="manual-dialog-group">
+        <h4 class="section-label">Add cat manually</h4>
+        <div id="manualCatFields" class="manual-cat-fields"></div>
+        <p id="manualCatError" class="manual-cat-error" role="alert"></p>
+      </section>
+      <div class="buttons compact">
+        <button id="clearManualDraftBtn" type="button" class="secondary-btn">Clear Draft</button>
+        <button id="closeManualCatBtn" type="button" class="secondary-btn">Cancel</button>
+        <button type="submit" class="primary-btn">Add Cat</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="parseLoadingDialog" class="manual-cat-dialog parse-loading-dialog">
+    <div class="manual-cat-form">
+      <div class="loading">
+        <p>Parsing cat...</p>
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </dialog>
+
+<script type="module" src="/static/breeding_planner/planner.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+You are parsing a Mewgenics cat screenshot.
+
+Return ONE TAB-SEPARATED spreadsheet row in this exact format:
+
+Cat	Gender	BreedWith	Str	Dex	Health	Int	Move	Char	Luck	Body	Head	Tail	Leg	Leg	Arm	Arm	Eye	Eye	Eyebrow	Eyebrow	Ear	Ear	Mouth	Fur
+
+
+Rules:
+
+BreedWith = x, unless rainbow icon. In which case it should be set to "?"
+
+Gender should be "M" or "F" for male or female. Some cats are "?" and it should be set to "?"
+
+Stats:
+Look at the two numbers for each stat.
+If the RIGHT number is exactly 7 -> output 1
+Otherwise -> 0
+
+Mutation slots correspond to body parts.
+
+Convert mutation descriptions following the example formats below.
+
+mutation DICTIONARY:
+
++2 Char, -1 Luck -> moreCharLessLuck
++2 Dex, -1 Health -> moreDexLessHealth
++2 Move, -1 Dex -> moreMoveLessDex
++2 Move, -1 Luck -> moreMoveLessLuck
++2 Health -> plusHealth
++2 Dex -> plusDex
++2 Move -> plusMove
++1 Range -> plusRange
++2 Int, -1 Str -> moreIntLessStr
++2 Str, -1 Dex -> moreStrLessDex
++2 Move, -1 Str -> moreMoveLessStr
++2 Health, -1 Char -> moreHealthLessChar
+
+Inflict Fear on contact -> fear
+
+Units contacting you knocked back -> knockback
+Start with backflips -> backflips
+Gain move per turn -> gainMovePerTurn
+Jump movement -> jumpMove
+Tile immunity -> tileImmunity
+Spawn coin -> spawnCoin
+Inflict random debuff -> randomDebuff
+Confuse enemy -> confusion
+Reflect damage -> reflect
+Bleed -> bleed
+Burn -> burn
+Leech -> leech
+
+After translating, append the body part:
+
+Examples:
+
+fear(head)
+knockback(tail)
+jumpMove(arm)
+moreCharLessLuck(eye)
+plusRange(eyebrow)
+burn(ear)
+bleed(mouth)
+
+mutation names MUST follow camelCase exactly.
+
+Allowed prefixes:
+more
+plus
+spawn
+gain
+jump
+tile
+random
+fear
+reflect
+confusion
+bleed
+burn
+leech
+backflips
+
+Never output:
++2Char
+-1Str
++2Char,-1Luck
+InflictRandomDebuff
+IncreaseCharDecreaseLuck
+
+Always convert stat modifiers into the format:
+
+more[Stat]Less[Stat]
+
+Examples:
+
++2 Char, -1 Luck -> moreCharLessLuck
++2 Dex, -1 Health -> moreDexLessHealth
++2 Move, -1 Dex -> moreMoveLessDex
++2 Move, -1 Luck -> moreMoveLessLuck
+
+If slot empty -> x
+
+mutations labeled "Defect" should NOT be included.
+
+For mutations not in this dictionary, follow the same format.
+
+The output should be similar to:
+Pippy	F	x	1	1	1	1	1	1	1	x	plusHealth(head)	knockback(tail)	moreLuckLessMove(leg)	x	x	x	moreCharLessLuck(eye)	x	x	x	x	x	x
+
+Remember that the mutation needs to appear under the right category, according to:
+Cat Gender BreedWith Str Dex Health Int Move Char Luck Body Head Tail Leg Leg Arm Arm Eye Eye Eyebrow Eyebrow Ear Ear Mouth Fur.
+If a body part appears twice in the columns (2 legs, 2 arms, 2 eyes, 2 eyebrows), always use the left-most column and put x in the second duplicate column.
+
+Return ONLY the tab-separated row.
