@@ -3,3 +3,4 @@ cats.csv
 node_modules/
 .mewgenics-server.pid
 .mewgenics-server.log
+static/react-planner/

@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { COLUMN_DEFINITIONS, COLUMN_LABELS, isStatColumn, normalizeColumnInputValue } from "../planner/schema";
 import {
   DEFAULT_ROOM,
@@ -35,6 +35,8 @@ type Props = {
   actionHistoryCount: number;
   statusCards: MessageCard[];
   dragState: { sourceIndex: number | null; dropTarget: DropTarget | null };
+  focusedEntryId?: string | null;
+  onFocusedEntryHandled?: () => void;
   onOpenManual: () => void;
   onExport: () => void;
   onUndo: () => void;
@@ -56,6 +58,8 @@ export function CurrentCatsPanel(props: Props) {
     actionHistoryCount,
     statusCards,
     dragState,
+    focusedEntryId,
+    onFocusedEntryHandled,
     onOpenManual,
     onExport,
     onUndo,
@@ -71,10 +75,12 @@ export function CurrentCatsPanel(props: Props) {
   const [nameFilter, setNameFilter] = useState("");
   const [mutationFilter, setMutationFilter] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
+  const [breedWithFilter, setBreedWithFilter] = useState("");
   const [selectedColumnIndex, setSelectedColumnIndex] = useState<number | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [openActionMenuEntryId, setOpenActionMenuEntryId] = useState<string | null>(null);
   const [openActionMenuVerticalPlacement, setOpenActionMenuVerticalPlacement] = useState<"down" | "up">("down");
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement | null>());
   const deferredNameFilter = useDeferredValue(nameFilter);
   const deferredMutationFilter = useDeferredValue(mutationFilter);
   const entryIndexById = useMemo(
@@ -87,15 +93,17 @@ export function CurrentCatsPanel(props: Props) {
     const normalizedName = deferredNameFilter.trim().toLowerCase();
     const normalizedMutation = deferredMutationFilter.trim().toLowerCase();
     const normalizedGender = genderFilter.trim().toUpperCase();
+    const normalizedBreedWith = breedWithFilter.trim().toUpperCase();
     const matchingEntries = entries.filter((entry) => {
       const matchesName = !normalizedName || (entry.columns[0] ?? "").toLowerCase().includes(normalizedName);
       const matchesMutation = !normalizedMutation
         || entry.columns.slice(10).some((value) => value.toLowerCase().includes(normalizedMutation));
       const matchesGender = !normalizedGender || (entry.columns[1] ?? "").toUpperCase() === normalizedGender;
-      return matchesName && matchesMutation && matchesGender;
+      const matchesBreedWith = !normalizedBreedWith || (entry.columns[2] ?? "").toUpperCase() === normalizedBreedWith;
+      return matchesName && matchesMutation && matchesGender && matchesBreedWith;
     });
     return groupEntriesByRoom(matchingEntries, (entry) => ({ entry, index: entryIndexById.get(entry.id) ?? -1 }));
-  }, [deferredMutationFilter, deferredNameFilter, entries, entryIndexById, genderFilter]);
+  }, [breedWithFilter, deferredMutationFilter, deferredNameFilter, entries, entryIndexById, genderFilter]);
 
   const visibleOrderedRooms = useMemo(() => getOrderedRooms(filteredGroupedEntries), [filteredGroupedEntries]);
   const visibleEntryCount = useMemo(
@@ -103,7 +111,7 @@ export function CurrentCatsPanel(props: Props) {
     [filteredGroupedEntries],
   );
 
-  const hasActiveFilters = Boolean(nameFilter.trim() || mutationFilter.trim() || genderFilter);
+  const hasActiveFilters = Boolean(nameFilter.trim() || mutationFilter.trim() || genderFilter || breedWithFilter);
 
   useEffect(() => {
     if (!openActionMenuEntryId) {
@@ -123,6 +131,26 @@ export function CurrentCatsPanel(props: Props) {
       document.removeEventListener("pointerdown", handlePointerDown);
     };
   }, [openActionMenuEntryId]);
+
+  useEffect(() => {
+    if (!focusedEntryId) {
+      return;
+    }
+
+    setSelectedEntryId(focusedEntryId);
+    const frameId = window.requestAnimationFrame(() => {
+      rowRefs.current.get(focusedEntryId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+      onFocusedEntryHandled?.();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [entries, focusedEntryId, onFocusedEntryHandled]);
 
   function toggleActionMenu(entryId: string, trigger: HTMLButtonElement) {
     if (openActionMenuEntryId === entryId) {
@@ -187,6 +215,16 @@ export function CurrentCatsPanel(props: Props) {
               <option value="?">?</option>
             </select>
           </label>
+          <label className="manual-field">
+            <span className="manual-label">Filter by BreedWith</span>
+            <select value={breedWithFilter} onChange={(event) => setBreedWithFilter(event.target.value)}>
+              <option value="">All</option>
+              <option value="ANY">Any</option>
+              <option value="M">M</option>
+              <option value="F">F</option>
+              <option value="?">?</option>
+            </select>
+          </label>
         </div>
           <div className="buttons compact cats-filter-actions">
             <button
@@ -197,6 +235,7 @@ export function CurrentCatsPanel(props: Props) {
               setNameFilter("");
               setMutationFilter("");
               setGenderFilter("");
+              setBreedWithFilter("");
             }}
             >
               Clear Filters
@@ -269,6 +308,9 @@ export function CurrentCatsPanel(props: Props) {
                         <tr
                           // Keep the key stable while inline-editing values like cat name.
                           key={entry.id}
+                          ref={(element) => {
+                            rowRefs.current.set(entry.id, element);
+                          }}
                           className={`cats-row${isActionMenuOpen ? " menu-open" : ""}${selectedEntryId === entry.id ? " row-selected" : ""}${dragState.sourceIndex === index ? " drag-source" : ""}${dragState.dropTarget?.type === "row" && dragState.dropTarget.rowIndex === index ? ` drop-target${dragState.dropTarget.placeAfter ? " drop-after" : ""}` : ""}`}
                           onClick={() => setSelectedEntryId(entry.id)}
                           onDragOver={(event) => {

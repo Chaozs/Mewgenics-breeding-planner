@@ -34,6 +34,7 @@ type UsePlannerAnalysisOptions = {
   pushActionSnapshot: (snapshot: ActionHistorySnapshot) => void;
   writeStoredData: (nextRaw: string, nextIds: string[]) => void;
   showCurrentCatsCards: (cards: MessageCard[]) => void;
+  onHighlightEntry?: (entryId: string) => void;
 };
 
 function cloneEntry(entry: Entry): Entry {
@@ -61,6 +62,7 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
     pushActionSnapshot,
     writeStoredData,
     showCurrentCatsCards,
+    onHighlightEntry,
   } = options;
 
   const [analysisState, setAnalysisState] = useState<PlannerAnalysisState>(getIdleState(false));
@@ -279,6 +281,7 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
       items: [`Moved ${target.columns[0] || "cat"} to ${action.targetRoom}.`],
       className: "move-section",
     }, { preserveAnalysis: true });
+    onHighlightEntry?.(action.entryId);
     setAppliedRecommendationUndos((current) => ({
       ...current,
       [actionKey]: {
@@ -288,7 +291,7 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
         previousIndex: entryIndex,
       },
     }));
-  }, [appliedRecommendationUndos, parsedRows, persistNextEntries, showCurrentCatsCards]);
+  }, [appliedRecommendationUndos, onHighlightEntry, parsedRows, persistNextEntries, showCurrentCatsCards]);
 
   const isRecommendationActionApplied = useCallback((action: RecommendationAction) => (
     Boolean(appliedRecommendationUndos[getRecommendationActionKey(action)])

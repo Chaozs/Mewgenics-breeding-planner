@@ -212,6 +212,7 @@ describe("usePlannerAnalysis", () => {
     const writeStoredData = jest.fn();
     const pushActionSnapshot = jest.fn();
     const showCurrentCatsCards = jest.fn();
+    const onHighlightEntry = jest.fn();
     const { result, rerender } = renderHook((props: { rows: Entry[] }) => usePlannerAnalysis({
       plannerConfig,
       plannerLocked: false,
@@ -223,6 +224,7 @@ describe("usePlannerAnalysis", () => {
       pushActionSnapshot,
       writeStoredData,
       showCurrentCatsCards,
+      onHighlightEntry,
     }), {
       initialProps: { rows: [buildEntry("cat-1"), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")] },
     });
@@ -236,6 +238,7 @@ describe("usePlannerAnalysis", () => {
       expect.stringContaining("Room B\nPippy\tF\tM"),
       ["cat-1", "cat-2", "cat-3"],
     );
+    expect(onHighlightEntry).toHaveBeenCalledWith("cat-1");
     expect(result.current.isRecommendationActionApplied({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe(true);
 
     rerender({ rows: [buildEntry("cat-1", ROOM_B), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")] });

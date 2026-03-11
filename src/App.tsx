@@ -59,6 +59,7 @@ function App() {
   const [manualCatError, setManualCatError] = useState("");
   const [manualPreviewUrl, setManualPreviewUrl] = useState("");
   const [actionHistory, setActionHistory] = useState<ActionHistorySnapshot[]>([]);
+  const [highlightedEntryId, setHighlightedEntryId] = useState<string | null>(null);
   const [dragState, setDragState] = useState<{ sourceIndex: number | null; dropTarget: DropTarget | null }>({
     sourceIndex: null,
     dropTarget: null,
@@ -95,6 +96,7 @@ function App() {
     pushActionSnapshot,
     writeStoredData,
     showCurrentCatsCards: setCurrentCatsCards,
+    onHighlightEntry: setHighlightedEntryId,
   });
 
   useEffect(() => {
@@ -369,6 +371,8 @@ function App() {
           actionHistoryCount={actionHistory.length}
           statusCards={currentCatsCards}
           dragState={dragState}
+          focusedEntryId={highlightedEntryId}
+          onFocusedEntryHandled={() => setHighlightedEntryId(null)}
           onOpenManual={() => setManualOpen(true)}
           onExport={() => void handleExportSpreadsheetData()}
           onUndo={() => {
@@ -395,7 +399,7 @@ function App() {
               title: "Row Deleted",
               items: [`Deleted ${parsedStored.rows[index].columns[0] || "cat"}.`],
               className: "maybe-section",
-            });
+            }, { preserveAnalysis: true });
           }}
           onMoveRoom={(index, targetRoom) => {
             const nextEntries = moveEntryToRoom(parsedStored.rows, index, targetRoom);
@@ -404,7 +408,7 @@ function App() {
                 title: "Row Moved",
                 items: [`Moved ${(parsedStored.rows[index]?.columns[0] || "cat")} to ${targetRoom}.`],
                 className: "move-section",
-              });
+              }, { preserveAnalysis: true });
             }
           }}
           onCellChange={(rowIndex, columnIndex, value) => {
@@ -412,7 +416,6 @@ function App() {
               ? entry
               : { ...entry, columns: normalizeEntryColumnValue(columnIndex, value, entry.columns, skillMappingsMap) });
             writeStoredData(serializeEntries(nextEntries), nextEntries.map((entry) => entry.id));
-            clearAnalysis();
           }}
           onDragStart={(rowIndex) => setDragState({ sourceIndex: rowIndex, dropTarget: null })}
           onDragOver={(target) => setDragState((current) => ({ ...current, dropTarget: target }))}
@@ -423,7 +426,7 @@ function App() {
             const nextEntries = moveEntryByDrop(parsedStored.rows, dragState.sourceIndex, target);
             setDragState({ sourceIndex: null, dropTarget: null });
             if (serializeEntries(nextEntries) !== storedCatsText) {
-              persistNextEntries(nextEntries, { title: "Rows Reordered", items: ["Updated row order."], className: "move-section" });
+              persistNextEntries(nextEntries, { title: "Rows Reordered", items: ["Updated row order."], className: "move-section" }, { preserveAnalysis: true });
             }
           }}
           onDragEnd={() => setDragState({ sourceIndex: null, dropTarget: null })}
