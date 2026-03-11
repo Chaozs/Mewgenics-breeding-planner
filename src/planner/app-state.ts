@@ -1,4 +1,4 @@
-import type { MessageCard, PlannerConfig, RecommendationAction, SkillMappingRow } from "../types";
+import type { Entry, MessageCard, MessageCardItem, PlannerConfig, RecommendationAction, SkillMappingRow } from "../types";
 import { buildPlannerConfigFromStored, extractRecommendationAction, isActionRequestLine, NO_DATA_STEPS, parseSkillMappingsTextToRows, parseStructuredAnalysis, stripRecommendationIds } from "./utils";
 
 export function normalizeStoredPlannerConfig(raw: Partial<PlannerConfig>, defaults: PlannerConfig): PlannerConfig {
@@ -30,7 +30,66 @@ export function getNoDataCards(showWarning = false): MessageCard[] {
   return cards;
 }
 
-export function buildStructuredResult(text: string) {
+function buildGroupedRecommendationItems(sectionTitle: string, lines: string[], entries: Entry[]): MessageCardItem[] {
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const entryOrder = new Map<string, { index: number; room: string }>();
+  const roomOrder = new Map<string, number>();
+  entries.forEach((entry, index) => {
+    entryOrder.set(entry.id, { index, room: entry.room });
+    if (!roomOrder.has(entry.room)) {
+      roomOrder.set(entry.room, roomOrder.size);
+    }
+  });
+
+  const grouped = new Map<string, Array<{ sortIndex: number; item: MessageCardItem }>>();
+  const unmatched: MessageCardItem[] = [];
+
+  lines.forEach((line) => {
+    const item = extractRecommendationAction(sectionTitle, line);
+    const entryId = item.action?.entryId ?? line.match(/\[id:([^\]]+)\]/i)?.[1]?.trim();
+    const entryMeta = entryId ? entryOrder.get(entryId) : undefined;
+    if (!entryMeta) {
+      unmatched.push(item);
+      return;
+    }
+
+    if (!grouped.has(entryMeta.room)) {
+      grouped.set(entryMeta.room, []);
+    }
+    grouped.get(entryMeta.room)?.push({ sortIndex: entryMeta.index, item });
+  });
+
+  const orderedRooms = [...grouped.keys()].sort((left, right) => (roomOrder.get(left) ?? Number.MAX_SAFE_INTEGER) - (roomOrder.get(right) ?? Number.MAX_SAFE_INTEGER));
+  const groupedItems: MessageCardItem[] = [];
+
+  orderedRooms.forEach((room) => {
+    const roomItems = grouped.get(room);
+    if (!roomItems?.length) {
+      return;
+    }
+
+    groupedItems.push({ text: room, kind: "group" });
+    roomItems
+      .sort((left, right) => left.sortIndex - right.sortIndex)
+      .forEach(({ item }) => {
+        groupedItems.push(item);
+      });
+  });
+
+  if (unmatched.length > 0) {
+    if (groupedItems.length > 0) {
+      groupedItems.push({ text: "Other", kind: "group" });
+    }
+    groupedItems.push(...unmatched);
+  }
+
+  return groupedItems;
+}
+
+export function buildStructuredResult(text: string, entries: Entry[] = []) {
   const parsed = parseStructuredAnalysis(text);
   const summaryLines = parsed.summary.map((line) => stripRecommendationIds(line));
   const actionRequestLines: string[] = [];
@@ -62,9 +121,9 @@ export function buildStructuredResult(text: string) {
   if (summaryLines.length > 0) {
     cards.push({ title: "Summary", items: summaryLines, className: "other-section" });
   }
-  cards.push({ title: "Recommended Trims", items: parsed.trimStrong.map((line) => extractRecommendationAction("Recommended Trims", line)), className: "strong-section" });
-  cards.push({ title: "Potential Trims", items: parsed.trimMaybe.map((line) => extractRecommendationAction("Potential Trims", line)), className: "maybe-section" });
-  cards.push({ title: "Move", items: parsed.move.map((line) => extractRecommendationAction("Move", line)), className: "move-section" });
+  cards.push({ title: "Recommended Trims", items: buildGroupedRecommendationItems("Recommended Trims", parsed.trimStrong, entries), className: "strong-section" });
+  cards.push({ title: "Potential Trims", items: buildGroupedRecommendationItems("Potential Trims", parsed.trimMaybe, entries), className: "maybe-section" });
+  cards.push({ title: "Move", items: buildGroupedRecommendationItems("Move", parsed.move, entries), className: "move-section" });
 
   return {
     cards,

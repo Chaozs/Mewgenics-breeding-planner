@@ -77,6 +77,18 @@
   margin-bottom: 8px;
 }
 
+.recommendation-group-heading {
+  list-style: none;
+  margin-left: -18px;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  color: #f6ddb8;
+}
+
+.recommendation-group-heading:first-child {
+  margin-top: 0;
+}
+
 .recommendation-item-applied {
   margin-left: -8px;
   padding: 8px 10px;

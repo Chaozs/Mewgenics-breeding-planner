@@ -41,8 +41,11 @@ describe("shared/planner-core", () => {
   it("normalizes breed-with and stat values", () => {
     expect(getDefaultBreedWithForGender("M")).toBe("F");
     expect(getDefaultBreedWithForGender("F")).toBe("M");
+    expect(getDefaultBreedWithForGender("?")).toBe("ANY");
     expect(normalizeBreedWithForGender("", "M")).toBe("F");
     expect(normalizeBreedWithForGender("X", "F")).toBe("M");
+    expect(normalizeBreedWithForGender("", "?")).toBe("ANY");
+    expect(normalizeBreedWithForGender("any", "?")).toBe("ANY");
     expect(normalizeStoredStatValue("1")).toBe("7");
     expect(normalizeStoredStatValue("6")).toBe("6");
     expect(normalizeStatValueForLogic("7")).toBe("1");
@@ -70,7 +73,7 @@ describe("shared/planner-core", () => {
     expect(normalized[23]).toBe("leech(mouth)");
 
     const goodRow = [
-      "Pippy", "F", "M", "7", "7", "6", "7", "3", "7", "7",
+      "Pippy", "?", "ANY", "7", "7", "6", "7", "3", "7", "7",
       "", "+1dex(head)", "", "", "", "", "", "", "", "", "", "", "", "leech(mouth)", "",
     ].join("\t");
 

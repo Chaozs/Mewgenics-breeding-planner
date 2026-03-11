@@ -52,6 +52,13 @@ function CardListItem(
   },
 ) {
   const text = typeof item === "string" ? item : item.text;
+  if (typeof item !== "string" && item.kind === "group") {
+    return (
+      <li className="recommendation-group-heading">
+        <strong>{text}</strong>
+      </li>
+    );
+  }
   const match = text.match(/^(.+?)\s*(?::|(?:-|\u2013|\u2014))\s+(.+)$/);
   const action = typeof item === "string" ? undefined : item.action;
   const isApplied = action && isActionApplied ? isActionApplied(action) : false;

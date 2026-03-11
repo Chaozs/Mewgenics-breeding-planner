@@ -32,7 +32,7 @@ export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
     label: "BreedWith",
     defaultValue: "",
     control: "select",
-    options: createSelectOptions(["", "?", "M", "F"], { "": "" }),
+    options: createSelectOptions(["", "ANY", "?", "M", "F"], { "": "", ANY: "Any" }),
   },
   ...["Str", "Dex", "Health", "Int", "Move", "Char", "Luck"].map((label) => ({
     key: label.toLowerCase(),
@@ -83,7 +83,7 @@ export function normalizeColumnInputValue(columnIndex: number, value: string) {
 
   if (columnIndex === 2) {
     nextValue = nextValue.toUpperCase();
-    return ["", "X", "M", "F", "?"].includes(nextValue) ? nextValue : "";
+    return ["", "X", "M", "F", "?", "ANY"].includes(nextValue) ? nextValue : "";
   }
 
   if (isStatColumn(columnIndex)) {

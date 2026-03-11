@@ -1,5 +1,5 @@
 import { buildStructuredResult, getNoDataCards, getRecommendationActionKey, normalizeStoredPlannerConfig } from "../../src/planner/app-state";
-import type { PlannerConfig } from "../../src/types";
+import type { Entry, PlannerConfig } from "../../src/types";
 
 const defaults: PlannerConfig = {
   priorityOrder: "body: any",
@@ -13,6 +13,12 @@ const defaults: PlannerConfig = {
   roomDEnabled: false,
   skillMappings: [{ source: "reflect chance", target: "reflect" }],
 };
+
+const entries: Entry[] = [
+  { id: "cat-3", room: "Room A", columns: ["Baker Bean", "M", "F", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+  { id: "cat-2", room: "Room A", columns: ["Shadow", "F", "M", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+  { id: "cat-1", room: "Room B", columns: ["Pippy", "F", "M", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+];
 
 describe("src/planner/app-state", () => {
   it("normalizes stored planner config from string skill mappings", () => {
@@ -44,20 +50,44 @@ MOVE
 * Baker Bean [id:cat-3] -> Room B: better incubator fit
 ACTION REQUEST (OPTIONAL)
 None
-    `);
+    `, entries);
 
     expect(result.followupPrompt).toBe("");
     expect(result.cards[0].title).toBe("Summary");
     expect(result.cards[0].items[0]).toBe("Keep your A room dense");
     expect(result.cards[1].title).toBe("Recommended Trims");
-    expect(result.cards[1].items[0]).toEqual({
+    expect(result.cards[1].items[0]).toEqual({ text: "Room B", kind: "group" });
+    expect(result.cards[1].items[1]).toEqual({
       text: "Pippy - weak mutation density",
       action: { kind: "delete", entryId: "cat-1" },
     });
-    expect(result.cards[3].items[0]).toEqual({
+    expect(result.cards[2].items[0]).toEqual({ text: "Room A", kind: "group" });
+    expect(result.cards[2].items[1]).toEqual({
+      text: "Shadow - situational hold",
+      action: { kind: "delete", entryId: "cat-2" },
+    });
+    expect(result.cards[3].items[0]).toEqual({ text: "Room A", kind: "group" });
+    expect(result.cards[3].items[1]).toEqual({
       text: "Baker Bean -> Room B: better incubator fit",
       action: { kind: "move", entryId: "cat-3", targetRoom: "Room B" },
     });
+  });
+
+  it("sorts grouped recommendation items in current table order", () => {
+    const result = buildStructuredResult(`
+TRIM (STRONG)
+* Pippy [id:cat-1] - later room
+* Baker Bean [id:cat-3] - first in room A
+* Shadow [id:cat-2] - second in room A
+`, entries);
+
+    expect(result.cards[0].items).toEqual([
+      { text: "Room A", kind: "group" },
+      { text: "Baker Bean - first in room A", action: { kind: "delete", entryId: "cat-3" } },
+      { text: "Shadow - second in room A", action: { kind: "delete", entryId: "cat-2" } },
+      { text: "Room B", kind: "group" },
+      { text: "Pippy - later room", action: { kind: "delete", entryId: "cat-1" } },
+    ]);
   });
 
   it("creates stable recommendation action keys", () => {

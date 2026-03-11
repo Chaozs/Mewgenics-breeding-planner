@@ -5,14 +5,25 @@ The user pasted their current cats as tab-separated rows, grouped by room (A, B,
 Each row contains:
 Cat	Gender	BreedWith	Str	Dex	Health	Int	Move	Char	Luck	Body	Head	Tail	Leg	Leg	Arm	Arm	Eye	Eye	Eyebrow	Eyebrow	Ear	Ear	Mouth	Fur
 
-M cats can only breed with F cats, and vice versa. ? cats can breed with either.
+Gender alone does not fully determine compatibility. Use both Gender and BreedWith.
 
 By default, BreedWith should match the opposite sex:
 - M cats normally breed with F
 - F cats normally breed with M
-- ? cats normally breed with ?
+- ? cats normally breed with ANY
 
 If BreedWith is explicitly set, use that value as the constraint instead.
+
+BreedWith meanings:
+- M = this cat can only breed with M cats
+- F = this cat can only breed with F cats
+- ? = this cat can only breed with ? cats
+- ANY = this cat can breed with any gender
+
+When deciding breeding usefulness, always respect compatibility:
+- a pairing must satisfy both cats' BreedWith constraints
+- some cats can only pair with ?-gender cats
+- ?-gender cats with BreedWith ANY are more flexible than ?-gender cats with BreedWith ?
 
 Your job is to help decide which cats should be removed or moved. Having a lot of cats costs resources.
 

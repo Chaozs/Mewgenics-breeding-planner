@@ -204,11 +204,14 @@ MOVE
   it("moves rows by room or drop target", () => {
     const entries = [
       { id: "1", room: ROOM_A, columns: ["Pippy", "F", "M", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
-      { id: "2", room: ROOM_A, columns: ["Baker", "M", "F", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+      { id: "2", room: ROOM_B, columns: ["Baker", "M", "F", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+      { id: "3", room: ROOM_B, columns: ["Shadow", "M", "F", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
     ];
 
     const movedRoom = moveEntryToRoom(entries, 0, ROOM_B);
-    expect(movedRoom[1].room).toBe(ROOM_B);
+    expect(movedRoom[0].id).toBe("1");
+    expect(movedRoom[0].room).toBe(ROOM_B);
+    expect(movedRoom[1].id).toBe("2");
 
     const dropped = moveEntryByDrop(entries, 0, { type: "row", rowIndex: 1, room: ROOM_A, placeAfter: true });
     expect(dropped[1].id).toBe("1");

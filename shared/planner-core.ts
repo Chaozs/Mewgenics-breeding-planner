@@ -7,7 +7,7 @@ export type SkillMappingRowLike = {
 
 export const EXPECTED_COLUMNS = 25;
 export const ALLOWED_GENDERS = new Set(["M", "F", "?"]);
-export const ALLOWED_BREED_WITH = new Set(["", "X", "M", "F", "?"]);
+export const ALLOWED_BREED_WITH = new Set(["", "X", "M", "F", "?", "ANY"]);
 export const ALLOWED_STAT_VALUES = new Set(["0", "1", "2", "3", "4", "5", "6", "7"]);
 export const COLUMN_LABELS = [
   "Cat",
@@ -123,7 +123,7 @@ export function getDefaultBreedWithForGender(gender: string) {
   if (normalizedGender === "F") {
     return "M";
   }
-  return "?";
+  return "ANY";
 }
 
 export function normalizeBreedWithForGender(breedWith: string, gender: string) {
@@ -134,6 +134,9 @@ export function normalizeBreedWithForGender(breedWith: string, gender: string) {
   }
   if (!normalizedBreedWith) {
     return getDefaultBreedWithForGender(normalizedGender);
+  }
+  if (normalizedBreedWith === "ANY") {
+    return "ANY";
   }
   return normalizedBreedWith;
 }
@@ -291,7 +294,7 @@ export function validateAndNormalizeCatsData(
 
     const breedWith = columns[2].toUpperCase();
     if (!ALLOWED_BREED_WITH.has(breedWith)) {
-      errors.push(`${context}: BreedWith must be blank, ?, M, or F; received "${columns[2]}".`);
+      errors.push(`${context}: BreedWith must be blank, Any, ?, M, or F; received "${columns[2]}".`);
       rowHasError = true;
     }
 

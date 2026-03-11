@@ -97,6 +97,11 @@ describe("usePlannerAnalysis", () => {
       expect(result.current.analysisState.cards[0].title).toBe("Summary");
       expect(result.current.analysisState.cards[1].title).toBe("Recommended Trims");
       expect(result.current.analysisState.cards[3].title).toBe("Move");
+      expect(result.current.analysisState.cards[3].items[0]).toEqual({ text: "Room A", kind: "group" });
+      expect(result.current.analysisState.cards[3].items[1]).toEqual({
+        text: "Pippy -> Room B: preserve incubator value",
+        action: { kind: "move", entryId: "cat-1", targetRoom: "Room B" },
+      });
     }
   });
 
@@ -219,7 +224,7 @@ describe("usePlannerAnalysis", () => {
       writeStoredData,
       showCurrentCatsCards,
     }), {
-      initialProps: { rows: [buildEntry("cat-1"), buildEntry("cat-2", ROOM_A, "Baker")] },
+      initialProps: { rows: [buildEntry("cat-1"), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")] },
     });
 
     act(() => {
@@ -227,10 +232,13 @@ describe("usePlannerAnalysis", () => {
     });
 
     expect(pushActionSnapshot).toHaveBeenCalled();
-    expect(writeStoredData).toHaveBeenCalled();
+    expect(writeStoredData).toHaveBeenCalledWith(
+      expect.stringContaining("Room B\nPippy\tF\tM"),
+      ["cat-1", "cat-2", "cat-3"],
+    );
     expect(result.current.isRecommendationActionApplied({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe(true);
 
-    rerender({ rows: [buildEntry("cat-1", ROOM_B), buildEntry("cat-2", ROOM_A, "Baker")] });
+    rerender({ rows: [buildEntry("cat-1", ROOM_B), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")] });
 
     act(() => {
       result.current.handleApplyRecommendationAction({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B });

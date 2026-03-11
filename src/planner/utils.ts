@@ -339,7 +339,7 @@ export function getManualCatEntryFromValues(values: Record<string, string>, skil
 
   const breedWith = columns[2].toUpperCase();
   if (!ALLOWED_BREED_WITH.has(breedWith)) {
-    return { error: "BreedWith must be blank, ?, M, or F." };
+    return { error: "BreedWith must be blank, Any, ?, M, or F." };
   }
 
   if (columns.slice(3, 10).some((value) => !ALLOWED_STAT_VALUES.has(value))) {
@@ -596,15 +596,7 @@ export function moveEntryToRoom(entries: Entry[], index: number, targetRoom: Roo
 
   const [entry] = nextEntries.splice(index, 1);
   entry.room = targetRoom;
-  let insertIndex = nextEntries.length;
-  for (let i = nextEntries.length - 1; i >= 0; i -= 1) {
-    if (nextEntries[i].room === targetRoom) {
-      insertIndex = i + 1;
-      break;
-    }
-  }
-  nextEntries.splice(insertIndex, 0, entry);
-  return nextEntries;
+  return insertEntryAtTopOfRoom(nextEntries, entry);
 }
 
 export function insertEntryAtTopOfRoom(entries: Entry[], nextEntry: Entry) {

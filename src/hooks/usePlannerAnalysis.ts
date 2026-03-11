@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { streamPlannerAnalysis } from "../planner/api";
 import { buildStructuredResult, getNoDataCards, getRecommendationActionKey } from "../planner/app-state";
 import { getEnabledRooms } from "../planner/room-config";
-import { NO_DATA_STEPS, sanitizeLiveOutputText, serializeEntries, validateAndNormalizeCatsData } from "../planner/utils";
+import { insertEntryAtTopOfRoom, NO_DATA_STEPS, sanitizeLiveOutputText, serializeEntries, validateAndNormalizeCatsData } from "../planner/utils";
 import type { Entry, MessageCard, PlannerAnalysisState, PlannerConfig, RecommendationAction } from "../types";
 
 type RecommendationUndoState =
@@ -178,7 +178,7 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
       return;
     }
 
-    const structured = buildStructuredResult(result.analysis);
+    const structured = buildStructuredResult(result.analysis, analysisEntries);
     setAnalysisState({ mode: "structured", cards: structured.cards, followupPrompt: structured.followupPrompt, text: result.analysis });
     setFollowupInput("");
   }, [analysisState, parsedRows, plannerConfig, plannerLockMessage, plannerLocked, skillMappingsMap, storedCatsText]);
@@ -268,7 +268,12 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
       return;
     }
 
-    const nextEntries = parsedRows.map((entry) => entry.id === action.entryId ? { ...entry, room: action.targetRoom } : entry);
+    const movedEntry = cloneEntry(target);
+    movedEntry.room = action.targetRoom;
+    const nextEntries = insertEntryAtTopOfRoom(
+      parsedRows.filter((entry) => entry.id !== action.entryId).map((entry) => cloneEntry(entry)),
+      movedEntry,
+    );
     persistNextEntries(nextEntries, {
       title: "Recommendation Applied",
       items: [`Moved ${target.columns[0] || "cat"} to ${action.targetRoom}.`],
