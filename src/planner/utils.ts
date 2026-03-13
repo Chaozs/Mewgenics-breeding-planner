@@ -198,21 +198,22 @@ export function extractRecommendationAction(sectionTitle: string, line: string):
   const idMatch = line.match(/\[id:([^\]]+)\]/i);
   const entryId = idMatch?.[1]?.trim();
   const withoutId = stripRecommendationIds(line);
+  const withoutCurrentRoom = withoutId.replace(/^(Room\s+[A-D]|[A-D])\s*\|\s*/i, "").trim();
 
   if (!entryId) {
-    return { text: withoutId };
+    return { text: withoutCurrentRoom };
   }
 
   const isTrimSection = sectionTitle === "Recommended Trims" || sectionTitle === "Potential Trims";
   if (isTrimSection) {
     return {
-      text: withoutId,
+      text: withoutCurrentRoom,
       action: { kind: "delete", entryId },
     };
   }
 
   if (sectionTitle === "Move") {
-    const moveMatch = withoutId.match(/^(.*?)\s*->\s*(Room [A-D]|[ABCD])\s*(?::|(?:-|\u2013|\u2014))\s+(.+)$/i);
+    const moveMatch = withoutCurrentRoom.match(/^(.*?)\s*->\s*(Room [A-D]|[ABCD])\s*(?::|(?:-|\u2013|\u2014))\s+(.+)$/i);
     if (moveMatch) {
       const catName = moveMatch[1].trim();
       const targetRoom = normalizeRoomLabel(moveMatch[2]);
@@ -325,7 +326,11 @@ export function createManualFormValues(entry?: Entry) {
   return values;
 }
 
-export function getManualCatEntryFromValues(values: Record<string, string>, skillMappings: Map<string, string>) {
+export function getManualCatEntryFromValues(
+  values: Record<string, string>,
+  skillMappings: Map<string, string>,
+  existingEntryId?: string,
+) {
   const room = toRoomLabel(String(values.room ?? DEFAULT_ROOM));
   const columns = COLUMN_KEYS.map((key, index) => {
     const raw = String(values[key] ?? "").trim();
@@ -359,7 +364,7 @@ export function getManualCatEntryFromValues(values: Record<string, string>, skil
 
   return {
     entry: {
-      id: createEntryId(),
+      id: existingEntryId || createEntryId(),
       room,
       columns: normalizeEntryColumns(columns, skillMappings),
     } as Entry,
@@ -624,6 +629,28 @@ export function insertEntryAtTopOfRoom(entries: Entry[], nextEntry: Entry) {
 
   nextEntries.splice(insertIndex, 0, nextEntry);
   return nextEntries;
+}
+
+export function replaceEntry(entries: Entry[], nextEntry: Entry) {
+  const sourceIndex = entries.findIndex((entry) => entry.id === nextEntry.id);
+  if (sourceIndex < 0) {
+    return entries;
+  }
+
+  const currentEntry = entries[sourceIndex];
+  const nextEntries = entries.map((entry, index) => (
+    index === sourceIndex
+      ? { ...nextEntry, columns: [...nextEntry.columns] }
+      : { ...entry, columns: [...entry.columns] }
+  ));
+
+  if (currentEntry.room === nextEntry.room) {
+    nextEntries[sourceIndex] = { ...nextEntry, columns: [...nextEntry.columns] };
+    return nextEntries;
+  }
+
+  nextEntries.splice(sourceIndex, 1);
+  return insertEntryAtTopOfRoom(nextEntries, { ...nextEntry, columns: [...nextEntry.columns] });
 }
 
 export function moveEntryByDrop(entries: Entry[], sourceIndex: number, target: { type: "row" | "room"; rowIndex?: number; room: Room; placeAfter: boolean }) {

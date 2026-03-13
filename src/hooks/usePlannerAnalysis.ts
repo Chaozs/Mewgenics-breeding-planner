@@ -297,6 +297,13 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
     Boolean(appliedRecommendationUndos[getRecommendationActionKey(action)])
   ), [appliedRecommendationUndos]);
 
+  const getRecommendationActionWarning = useCallback((action: RecommendationAction) => {
+    if (action.kind === "move" && appliedRecommendationUndos[`delete:${action.entryId}`]) {
+      return "Already Deleted";
+    }
+    return null;
+  }, [appliedRecommendationUndos]);
+
   useEffect(() => {
     if (analysisState.mode === "idle" && !storedCatsText.trim()) {
       setAnalysisState(getIdleState(false));
@@ -312,5 +319,6 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
     handleAnalyze,
     handleApplyRecommendationAction,
     isRecommendationActionApplied,
+    getRecommendationActionWarning,
   };
 }

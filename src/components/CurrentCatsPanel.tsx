@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { COLUMN_DEFINITIONS, COLUMN_LABELS, isStatColumn, normalizeColumnInputValue } from "../planner/schema";
 import {
   DEFAULT_ROOM,
@@ -42,6 +43,7 @@ type Props = {
   onUndo: () => void;
   onClear: () => void;
   onDelete: (index: number) => void;
+  onEdit: (index: number) => void;
   onMoveRoom: (index: number, targetRoom: string) => void;
   onCellChange: (rowIndex: number, columnIndex: number, value: string) => void;
   onDragStart: (rowIndex: number) => void;
@@ -51,6 +53,11 @@ type Props = {
 };
 
 export function CurrentCatsPanel(props: Props) {
+  const ACTION_MENU_GAP = 6;
+  const ACTION_MENU_MARGIN = 8;
+  const ACTION_MENU_FALLBACK_WIDTH = 148;
+  const ACTION_MENU_FALLBACK_HEIGHT = 220;
+
   const {
     entries,
     invalidLines,
@@ -65,6 +72,7 @@ export function CurrentCatsPanel(props: Props) {
     onUndo,
     onClear,
     onDelete,
+    onEdit,
     onMoveRoom,
     onCellChange,
     onDragStart,
@@ -80,7 +88,10 @@ export function CurrentCatsPanel(props: Props) {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [openActionMenuEntryId, setOpenActionMenuEntryId] = useState<string | null>(null);
   const [openActionMenuVerticalPlacement, setOpenActionMenuVerticalPlacement] = useState<"down" | "up">("down");
+  const [openActionMenuPosition, setOpenActionMenuPosition] = useState({ top: 0, left: 0 });
   const rowRefs = useRef(new Map<string, HTMLTableRowElement | null>());
+  const actionButtonRefs = useRef(new Map<string, HTMLButtonElement | null>());
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
   const deferredNameFilter = useDeferredValue(nameFilter);
   const deferredMutationFilter = useDeferredValue(mutationFilter);
   const entryIndexById = useMemo(
@@ -120,7 +131,7 @@ export function CurrentCatsPanel(props: Props) {
 
     function handlePointerDown(event: PointerEvent) {
       const target = event.target as HTMLElement | null;
-      if (target?.closest(".row-actions-menu-shell")) {
+      if (target?.closest(".row-actions-menu-shell") || target?.closest(".row-actions-menu")) {
         return;
       }
       setOpenActionMenuEntryId(null);
@@ -129,6 +140,54 @@ export function CurrentCatsPanel(props: Props) {
     document.addEventListener("pointerdown", handlePointerDown);
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [openActionMenuEntryId]);
+
+  useEffect(() => {
+    if (!openActionMenuEntryId) {
+      return;
+    }
+
+    function updateMenuPosition() {
+      const entryId = openActionMenuEntryId;
+      if (!entryId) {
+        return;
+      }
+
+      const trigger = actionButtonRefs.current.get(entryId);
+      if (!trigger) {
+        return;
+      }
+
+      const triggerRect = trigger.getBoundingClientRect();
+      const menuRect = actionMenuRef.current?.getBoundingClientRect();
+      const menuWidth = menuRect?.width ?? ACTION_MENU_FALLBACK_WIDTH;
+      const menuHeight = menuRect?.height ?? ACTION_MENU_FALLBACK_HEIGHT;
+      const spaceBelow = window.innerHeight - triggerRect.bottom - ACTION_MENU_MARGIN;
+      const spaceAbove = triggerRect.top - ACTION_MENU_MARGIN;
+      const placement: "down" | "up" = spaceBelow >= menuHeight || spaceBelow >= spaceAbove ? "down" : "up";
+      const top = placement === "down"
+        ? Math.min(triggerRect.bottom + ACTION_MENU_GAP, window.innerHeight - menuHeight - ACTION_MENU_MARGIN)
+        : Math.max(ACTION_MENU_MARGIN, triggerRect.top - menuHeight - ACTION_MENU_GAP);
+      const left = Math.max(
+        ACTION_MENU_MARGIN,
+        Math.min(triggerRect.right + ACTION_MENU_GAP, window.innerWidth - menuWidth - ACTION_MENU_MARGIN),
+      );
+
+      setOpenActionMenuVerticalPlacement(placement);
+      setOpenActionMenuPosition((current) => (
+        current.top === top && current.left === left
+          ? current
+          : { top, left }
+      ));
+    }
+
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
     };
   }, [openActionMenuEntryId]);
 
@@ -158,14 +217,16 @@ export function CurrentCatsPanel(props: Props) {
       return;
     }
 
-    const scrollableTable = trigger.closest(".cats-table-wrap");
     const triggerRect = trigger.getBoundingClientRect();
-    const containerRect = scrollableTable?.getBoundingClientRect();
-    const verticalMidpoint = containerRect
-      ? containerRect.top + (containerRect.height / 2)
-      : (window.innerHeight / 2);
-    const triggerCenter = triggerRect.top + (triggerRect.height / 2);
-    setOpenActionMenuVerticalPlacement(triggerCenter > verticalMidpoint ? "up" : "down");
+    const initialLeft = Math.max(
+      ACTION_MENU_MARGIN,
+      Math.min(triggerRect.right + ACTION_MENU_GAP, window.innerWidth - ACTION_MENU_FALLBACK_WIDTH - ACTION_MENU_MARGIN),
+    );
+    const initialTop = Math.max(
+      ACTION_MENU_MARGIN,
+      Math.min(triggerRect.bottom + ACTION_MENU_GAP, window.innerHeight - ACTION_MENU_FALLBACK_HEIGHT - ACTION_MENU_MARGIN),
+    );
+    setOpenActionMenuPosition({ top: initialTop, left: initialLeft });
     setOpenActionMenuEntryId(entryId);
   }
 
@@ -343,35 +404,57 @@ export function CurrentCatsPanel(props: Props) {
                                     type="button"
                                     className="row-action-btn row-actions-toggle"
                                     aria-expanded={isActionMenuOpen}
-                                  onClick={(event) => toggleActionMenu(entry.id, event.currentTarget)}
-                                >
-                                  Actions
-                                </button>
-                                <div className={`row-actions-menu row-actions-menu-${openActionMenuVerticalPlacement}`} hidden={!isActionMenuOpen}>
-                                  {ROOM_ORDER.filter((targetRoom) => targetRoom !== entry.room).map((targetRoom) => (
-                                    <button
-                                      key={`${entry.id}-${targetRoom}`}
-                                      type="button"
-                                      className="row-actions-menu-item"
-                                      onClick={() => {
-                                        onMoveRoom(index, targetRoom || DEFAULT_ROOM);
-                                        setOpenActionMenuEntryId(null);
-                                      }}
-                                    >
-                                      Move to {ROOM_SHORT_LABEL.get(targetRoom) || targetRoom}
-                                    </button>
-                                  ))}
-                                  <button
-                                    type="button"
-                                    className="row-actions-menu-item danger"
-                                    onClick={() => {
-                                      onDelete(index);
-                                      setOpenActionMenuEntryId(null);
+                                    ref={(element) => {
+                                      actionButtonRefs.current.set(entry.id, element);
                                     }}
+                                    onClick={(event) => toggleActionMenu(entry.id, event.currentTarget)}
                                   >
-                                    Delete
+                                    Actions
                                   </button>
-                                </div>
+                                {isActionMenuOpen && typeof document !== "undefined"
+                                  ? createPortal(
+                                    <div
+                                      ref={actionMenuRef}
+                                      className={`row-actions-menu row-actions-menu-${openActionMenuVerticalPlacement}`}
+                                      style={{ top: `${openActionMenuPosition.top}px`, left: `${openActionMenuPosition.left}px` }}
+                                    >
+                                      <button
+                                        type="button"
+                                        className="row-actions-menu-item"
+                                        onClick={() => {
+                                          onEdit(index);
+                                          setOpenActionMenuEntryId(null);
+                                        }}
+                                      >
+                                        Edit
+                                      </button>
+                                      {ROOM_ORDER.filter((targetRoom) => targetRoom !== entry.room).map((targetRoom) => (
+                                        <button
+                                          key={`${entry.id}-${targetRoom}`}
+                                          type="button"
+                                          className="row-actions-menu-item"
+                                          onClick={() => {
+                                            onMoveRoom(index, targetRoom || DEFAULT_ROOM);
+                                            setOpenActionMenuEntryId(null);
+                                          }}
+                                        >
+                                          Move to {ROOM_SHORT_LABEL.get(targetRoom) || targetRoom}
+                                        </button>
+                                      ))}
+                                      <button
+                                        type="button"
+                                        className="row-actions-menu-item danger"
+                                        onClick={() => {
+                                          onDelete(index);
+                                          setOpenActionMenuEntryId(null);
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>,
+                                    document.body,
+                                  )
+                                  : null}
                               </div>
                             </div>
                           </td>

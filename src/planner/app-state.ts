@@ -1,6 +1,10 @@
 import type { Entry, MessageCard, MessageCardItem, PlannerConfig, RecommendationAction, SkillMappingRow } from "../types";
 import { buildPlannerConfigFromStored, extractRecommendationAction, isActionRequestLine, NO_DATA_STEPS, parseSkillMappingsTextToRows, parseStructuredAnalysis, stripRecommendationIds } from "./utils";
 
+function filterNoneLines(lines: string[]) {
+  return lines.filter((line) => line.trim().toLowerCase().replace(/[.\s]+$/g, "") !== "none");
+}
+
 export function normalizeStoredPlannerConfig(raw: Partial<PlannerConfig>, defaults: PlannerConfig): PlannerConfig {
   const nextRaw = { ...raw } as Partial<PlannerConfig> & { skillMappings?: SkillMappingRow[] | string };
   const normalizedRaw: Partial<PlannerConfig> = {
@@ -93,6 +97,9 @@ export function buildStructuredResult(text: string, entries: Entry[] = []) {
   const parsed = parseStructuredAnalysis(text);
   const summaryLines = parsed.summary.map((line) => stripRecommendationIds(line));
   const actionRequestLines: string[] = [];
+  const trimStrongLines = filterNoneLines(parsed.trimStrong);
+  const trimMaybeLines = filterNoneLines(parsed.trimMaybe);
+  const moveLines = filterNoneLines(parsed.move);
 
   parsed.actionRequest.forEach((line) => {
     const normalized = line.trim().toLowerCase().replace(/[.\s]+$/g, "");
@@ -110,7 +117,7 @@ export function buildStructuredResult(text: string, entries: Entry[] = []) {
   });
 
   const cards: MessageCard[] = [];
-  const hasStructuredOutput = summaryLines.length > 0 || parsed.trimStrong.length > 0 || parsed.trimMaybe.length > 0 || parsed.move.length > 0;
+  const hasStructuredOutput = summaryLines.length > 0 || trimStrongLines.length > 0 || trimMaybeLines.length > 0 || moveLines.length > 0;
   if (!hasStructuredOutput) {
     return {
       cards: [{ title: "Analysis", items: ["Could not detect structured sections in the model response."], className: "maybe-section" }],
@@ -121,9 +128,9 @@ export function buildStructuredResult(text: string, entries: Entry[] = []) {
   if (summaryLines.length > 0) {
     cards.push({ title: "Summary", items: summaryLines, className: "other-section" });
   }
-  cards.push({ title: "Recommended Trims", items: buildGroupedRecommendationItems("Recommended Trims", parsed.trimStrong, entries), className: "strong-section" });
-  cards.push({ title: "Potential Trims", items: buildGroupedRecommendationItems("Potential Trims", parsed.trimMaybe, entries), className: "maybe-section" });
-  cards.push({ title: "Move", items: buildGroupedRecommendationItems("Move", parsed.move, entries), className: "move-section" });
+  cards.push({ title: "Recommended Trims", items: buildGroupedRecommendationItems("Recommended Trims", trimStrongLines, entries), className: "strong-section" });
+  cards.push({ title: "Potential Trims", items: buildGroupedRecommendationItems("Potential Trims", trimMaybeLines, entries), className: "maybe-section" });
+  cards.push({ title: "Move", items: buildGroupedRecommendationItems("Move", moveLines, entries), className: "move-section" });
 
   return {
     cards,

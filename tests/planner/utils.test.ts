@@ -22,6 +22,7 @@ import {
   serializeEntriesForSpreadsheet,
   serializePriorityOrderText,
   stripRecommendationIds,
+  replaceEntry,
 } from "../../src/planner/utils";
 import { ROOM_A, ROOM_B } from "../../shared/rooms";
 
@@ -84,10 +85,11 @@ describe("src/planner/utils", () => {
     expect(values.room).toBe(ROOM_B);
     expect(values.cat).toBe("Pippy");
 
-    const manual = getManualCatEntryFromValues(values, mappings);
+    const manual = getManualCatEntryFromValues(values, mappings, "existing-id");
     expect("entry" in manual).toBe(true);
     if ("entry" in manual) {
       expect(manual.entry).toBeDefined();
+      expect(manual.entry!.id).toBe("existing-id");
       expect(manual.entry!.room).toBe(ROOM_B);
     }
   });
@@ -189,6 +191,14 @@ MOVE
       text: "Cat -> Room B: move reason",
       action: { kind: "move", entryId: "abc", targetRoom: "Room B" },
     });
+    expect(extractRecommendationAction("Recommended Trims", "Room A | Cat [id:abc] - trim reason")).toEqual({
+      text: "Cat - trim reason",
+      action: { kind: "delete", entryId: "abc" },
+    });
+    expect(extractRecommendationAction("Move", "Room A | Cat [id:abc] -> Room B: move reason")).toEqual({
+      text: "Cat -> Room B: move reason",
+      action: { kind: "move", entryId: "abc", targetRoom: "Room B" },
+    });
   });
 
   it("handles priority order parsing and lookup", () => {
@@ -229,6 +239,22 @@ MOVE
     const insertedB = insertEntryAtTopOfRoom(entries, { id: "4", room: ROOM_B, columns: ["New B", "F", "M", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] });
     expect(insertedB[1].id).toBe("4");
     expect(insertedB[2].id).toBe("2");
+  });
+
+  it("replaces edited entries in place and re-homes them when the room changes", () => {
+    const entries = [
+      { id: "1", room: ROOM_A, columns: ["Pippy", "F", "M", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+      { id: "2", room: ROOM_B, columns: ["Baker", "M", "F", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+      { id: "3", room: ROOM_B, columns: ["Shadow", "M", "F", "7", "7", "7", "7", "7", "7", "7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""] },
+    ];
+
+    const renamed = replaceEntry(entries, { ...entries[1], columns: ["Baker Bean", ...entries[1].columns.slice(1)] });
+    expect(renamed[1].id).toBe("2");
+    expect(renamed[1].columns[0]).toBe("Baker Bean");
+
+    const moved = replaceEntry(entries, { ...entries[2], room: ROOM_A });
+    expect(moved[0].id).toBe("3");
+    expect(moved[0].room).toBe(ROOM_A);
   });
 
   it("normalizes inline edits and cell display classes", () => {

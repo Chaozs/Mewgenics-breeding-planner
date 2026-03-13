@@ -9,7 +9,7 @@ import { usePlannerConfigState } from "./hooks/usePlannerConfigState";
 import { useQuickstartState } from "./hooks/useQuickstartState";
 import { useStoredCatsState } from "./hooks/useStoredCatsState";
 import { getEnabledRooms } from "./planner/room-config";
-import type { ManualDraft, MessageCard } from "./types";
+import type { Entry, ManualDraft, MessageCard } from "./types";
 import {
   clearManualCatDraft,
   createManualFormValues,
@@ -27,6 +27,7 @@ import {
   moveEntryByDrop,
   moveEntryToRoom,
   normalizeEntryColumnValue,
+  replaceEntry,
   insertEntryAtTopOfRoom,
 } from "./planner/utils";
 
@@ -54,6 +55,7 @@ function App() {
   const [currentCatsCards, setCurrentCatsCards] = useState<MessageCard[]>([]);
   const { quickstartOpen, setQuickstartOpen } = useQuickstartState();
   const [manualOpen, setManualOpen] = useState(false);
+  const [manualEditEntryId, setManualEditEntryId] = useState<string | null>(null);
   const [manualValues, setManualValues] = useState<Record<string, string>>(createManualFormValues());
   const [manualParseStatus, setManualParseStatus] = useState<ParseStatus>({ text: "Waiting for screenshot...", isError: false });
   const [manualCatError, setManualCatError] = useState("");
@@ -71,6 +73,57 @@ function App() {
   const orderedRooms = useMemo(() => getOrderedRooms(groupedEntries), [groupedEntries]);
   const plannerLocked = !openAiStatus.enabled;
   const manualParseLocked = !openAiStatus.enabled;
+  const isManualEditMode = manualEditEntryId !== null;
+
+  function getIdleManualParseStatus(): ParseStatus {
+    return manualParseLocked
+      ? { text: "", isError: true }
+      : { text: "Waiting for screenshot...", isError: false };
+  }
+
+  function clearManualPreview() {
+    if (manualPreviewUrl) {
+      URL.revokeObjectURL(manualPreviewUrl);
+      setManualPreviewUrl("");
+    }
+  }
+
+  function loadAddDraftState() {
+    const draft = getManualCatDraft();
+    setManualEditEntryId(null);
+    setManualValues(draft ? { ...createManualFormValues(), ...draft.values } : createManualFormValues());
+    setManualCatError(draft?.manualCatErrorText || "");
+    if (openAiStatus.enabled && draft?.parseStatusText) {
+      setManualParseStatus({ text: draft.parseStatusText, isError: Boolean(draft.parseStatusIsError) });
+      return;
+    }
+    setManualParseStatus(getIdleManualParseStatus());
+  }
+
+  function openAddManualDialog() {
+    if (isManualEditMode) {
+      clearManualPreview();
+      loadAddDraftState();
+    }
+    setManualOpen(true);
+  }
+
+  function openEditManualDialog(entry: Entry) {
+    clearManualPreview();
+    setManualEditEntryId(entry.id);
+    setManualValues(createManualFormValues(entry));
+    setManualCatError("");
+    setManualParseStatus(getIdleManualParseStatus());
+    setManualOpen(true);
+  }
+
+  function closeManualDialog() {
+    setManualOpen(false);
+    if (isManualEditMode) {
+      clearManualPreview();
+      loadAddDraftState();
+    }
+  }
 
   function pushActionSnapshot(snapshot: ActionHistorySnapshot) {
     setActionHistory((current) => [...current, snapshot].slice(-100));
@@ -85,6 +138,7 @@ function App() {
     handleAnalyze,
     handleApplyRecommendationAction,
     isRecommendationActionApplied,
+    getRecommendationActionWarning,
   } = usePlannerAnalysis({
     plannerConfig,
     plannerLocked,
@@ -104,6 +158,10 @@ function App() {
       return;
     }
 
+    if (isManualEditMode) {
+      return;
+    }
+
     const draft = getManualCatDraft();
     if (!draft) {
       return;
@@ -114,9 +172,13 @@ function App() {
     if (openAiStatus.enabled && draft.parseStatusText) {
       setManualParseStatus({ text: draft.parseStatusText, isError: Boolean(draft.parseStatusIsError) });
     }
-  }, [openAiStatus.enabled, plannerConfigLoaded]);
+  }, [isManualEditMode, openAiStatus.enabled, plannerConfigLoaded]);
 
   useEffect(() => {
+    if (isManualEditMode) {
+      return;
+    }
+
     const draft: ManualDraft = {
       values: manualValues,
       parseStatusText: manualParseLocked ? "" : manualParseStatus.text,
@@ -124,7 +186,7 @@ function App() {
       manualCatErrorText: manualCatError,
     };
     setManualCatDraft(draft);
-  }, [manualCatError, manualParseLocked, manualParseStatus, manualValues]);
+  }, [isManualEditMode, manualCatError, manualParseLocked, manualParseStatus, manualValues]);
 
   useEffect(() => () => {
     if (manualPreviewUrl) {
@@ -148,14 +210,14 @@ function App() {
         if (item.kind === "file" && item.type.startsWith("image/")) {
           if (manualParseLocked) {
             event.preventDefault();
-            setManualOpen(true);
+            openAddManualDialog();
             return;
           }
 
           const file = item.getAsFile();
           if (file) {
             event.preventDefault();
-            setManualOpen(true);
+            openAddManualDialog();
             void handleManualParse(file);
           }
           return;
@@ -167,7 +229,7 @@ function App() {
     return () => {
       window.removeEventListener("paste", handleWindowPaste);
     };
-  }, [manualParseLocked, plannerConfig.skillMappings, manualPreviewUrl]);
+  }, [isManualEditMode, manualParseLocked, plannerConfig.skillMappings, manualPreviewUrl, openAiStatus.enabled]);
 
   function handleImportSave() {
     if (!importText.trim()) {
@@ -215,7 +277,10 @@ function App() {
 
     try {
       const parsedEntry = await parseScreenshotForManualForm(file, plannerConfig.skillMappings);
-      setManualValues(createManualFormValues(parsedEntry));
+      setManualValues((current) => ({
+        ...createManualFormValues(parsedEntry),
+        room: current.room,
+      }));
       setManualParseStatus({ text: "Parsed successfully.", isError: false });
       setManualCatError("");
     } catch (error) {
@@ -225,12 +290,30 @@ function App() {
   }
 
   function handleManualSubmit() {
-    const result = getManualCatEntryFromValues(manualValues, skillMappingsMap);
+    const result = getManualCatEntryFromValues(manualValues, skillMappingsMap, manualEditEntryId || undefined);
     if (!("entry" in result) || !result.entry) {
-      setManualCatError(result.error || "Could not add cat.");
+      setManualCatError(result.error || `Could not ${isManualEditMode ? "save" : "add"} cat.`);
       return;
     }
     const nextEntry = result.entry;
+    if (isManualEditMode) {
+      const existingEntry = parsedStored.rows.find((entry) => entry.id === manualEditEntryId);
+      if (!existingEntry) {
+        setManualCatError("That cat no longer exists in browser data.");
+        return;
+      }
+
+      persistNextEntries(replaceEntry(parsedStored.rows, nextEntry), {
+        title: "Cat Updated",
+        items: [`Updated ${nextEntry.columns[0]} in ${nextEntry.room}.`],
+        className: "move-section",
+      }, { preserveAnalysis: true });
+      setManualOpen(false);
+      clearManualPreview();
+      loadAddDraftState();
+      return;
+    }
+
     persistNextEntries(insertEntryAtTopOfRoom(parsedStored.rows, nextEntry), {
       title: "Cat Added",
       items: [`Added ${nextEntry.columns[0]} to ${nextEntry.room}.`],
@@ -238,13 +321,11 @@ function App() {
     });
     clearManualCatDraft();
     setManualOpen(false);
+    setManualEditEntryId(null);
     setManualValues(createManualFormValues());
     setManualCatError("");
-    setManualParseStatus(manualParseLocked ? { text: "", isError: true } : { text: "Waiting for screenshot...", isError: false });
-    if (manualPreviewUrl) {
-      URL.revokeObjectURL(manualPreviewUrl);
-      setManualPreviewUrl("");
-    }
+    setManualParseStatus(getIdleManualParseStatus());
+    clearManualPreview();
   }
 
   async function handleExportSpreadsheetData() {
@@ -373,7 +454,7 @@ function App() {
           dragState={dragState}
           focusedEntryId={highlightedEntryId}
           onFocusedEntryHandled={() => setHighlightedEntryId(null)}
-          onOpenManual={() => setManualOpen(true)}
+          onOpenManual={openAddManualDialog}
           onExport={() => void handleExportSpreadsheetData()}
           onUndo={() => {
             const snapshot = actionHistory[actionHistory.length - 1];
@@ -400,6 +481,13 @@ function App() {
               items: [`Deleted ${parsedStored.rows[index].columns[0] || "cat"}.`],
               className: "maybe-section",
             }, { preserveAnalysis: true });
+          }}
+          onEdit={(index) => {
+            const entry = parsedStored.rows[index];
+            if (!entry) {
+              return;
+            }
+            openEditManualDialog(entry);
           }}
           onMoveRoom={(index, targetRoom) => {
             const nextEntries = moveEntryToRoom(parsedStored.rows, index, targetRoom);
@@ -462,6 +550,7 @@ function App() {
           onSendFollowup={() => void handleAnalyze("/analyze-followup-stream", followupInput)}
           onApplyRecommendationAction={handleApplyRecommendationAction}
           isRecommendationActionApplied={isRecommendationActionApplied}
+          getRecommendationActionWarning={getRecommendationActionWarning}
         />
       </main>
 
@@ -471,22 +560,27 @@ function App() {
 
       <ManualCatDialog
         open={manualOpen}
+        mode={isManualEditMode ? "edit" : "add"}
         values={manualValues}
         parseLocked={manualParseLocked}
         parseLockMessage={openAiStatus.message}
         parseStatus={manualParseStatus}
         manualCatError={manualCatError}
         previewUrl={manualPreviewUrl}
-        onClose={() => setManualOpen(false)}
+        onClose={closeManualDialog}
         onClearDraft={() => {
-          clearManualCatDraft();
-          setManualValues(createManualFormValues());
-          setManualCatError("");
-          setManualParseStatus(manualParseLocked ? { text: "", isError: true } : { text: "Waiting for screenshot...", isError: false });
-          if (manualPreviewUrl) {
-            URL.revokeObjectURL(manualPreviewUrl);
-            setManualPreviewUrl("");
+          if (isManualEditMode) {
+            const entry = parsedStored.rows.find((currentEntry) => currentEntry.id === manualEditEntryId);
+            if (entry) {
+              setManualValues(createManualFormValues(entry));
+            }
+          } else {
+            clearManualCatDraft();
+            setManualValues(createManualFormValues());
           }
+          setManualCatError("");
+          setManualParseStatus(getIdleManualParseStatus());
+          clearManualPreview();
         }}
         onSubmit={handleManualSubmit}
         onValueChange={(key, value) => setManualValues((current) => ({ ...current, [key]: value }))}

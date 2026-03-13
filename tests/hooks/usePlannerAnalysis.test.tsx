@@ -280,6 +280,7 @@ describe("usePlannerAnalysis", () => {
       ["cat-2"],
     );
     expect(result.current.isRecommendationActionApplied({ kind: "delete", entryId: "cat-1" })).toBe(true);
+    expect(result.current.getRecommendationActionWarning({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe("Already Deleted");
 
     rerender({ rows: [buildEntry("cat-2", ROOM_A, "Baker")] });
 
@@ -292,5 +293,6 @@ describe("usePlannerAnalysis", () => {
       ["cat-1", "cat-2"],
     );
     expect(result.current.isRecommendationActionApplied({ kind: "delete", entryId: "cat-1" })).toBe(false);
+    expect(result.current.getRecommendationActionWarning({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBeNull();
   });
 });

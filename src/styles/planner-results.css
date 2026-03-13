@@ -109,6 +109,17 @@
   background: rgba(86, 196, 155, 0.18);
 }
 
+.recommendation-action-btn.is-warning {
+  border-color: rgba(255, 126, 143, 0.45);
+  background: rgba(255, 126, 143, 0.16);
+  color: #ffd9df;
+  cursor: not-allowed;
+}
+
+.recommendation-action-btn.is-warning:disabled {
+  opacity: 1;
+}
+
 .strong-section {
   border-left: 5px solid var(--danger);
 }

@@ -323,9 +323,7 @@
 }
 
 .row-actions-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: calc(100% + 6px);
+  position: fixed;
   display: grid;
   gap: 4px;
   min-width: 132px;
@@ -334,12 +332,7 @@
   border-radius: 10px;
   background: rgba(13, 18, 26, 0.98);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
-  z-index: 20;
-}
-
-.row-actions-menu.row-actions-menu-up {
-  top: auto;
-  bottom: calc(100% + 6px);
+  z-index: 2000;
 }
 
 .row-actions-menu[hidden] {

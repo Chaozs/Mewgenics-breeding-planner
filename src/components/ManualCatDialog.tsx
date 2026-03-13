@@ -8,6 +8,7 @@ type ParseStatus = {
 
 type Props = {
   open: boolean;
+  mode: "add" | "edit";
   values: Record<string, string>;
   parseLocked: boolean;
   parseLockMessage: string;
@@ -25,6 +26,7 @@ type Props = {
 export function ManualCatDialog(props: Props) {
   const {
     open,
+    mode,
     values,
     parseLocked,
     parseLockMessage,
@@ -43,12 +45,21 @@ export function ManualCatDialog(props: Props) {
     return null;
   }
 
+  const isEditMode = mode === "edit";
+  const title = isEditMode ? "Edit Cat" : "Add Cat";
+  const submitLabel = isEditMode ? "Save Changes" : "Add Cat";
+  const resetLabel = isEditMode ? "Reset Changes" : "Clear Draft";
+
   return (
     <div className="manual-cat-overlay" onClick={onClose}>
       <dialog className="manual-cat-dialog" open onClick={(event) => event.stopPropagation()}>
         <form className="manual-cat-form" method="dialog" onSubmit={(event) => event.preventDefault()} onPaste={onPaste}>
-          <h3 className="section-title">Add Cat</h3>
-          <p className="field-help">Add a cat by parsing a screenshot or by filling the fields manually. When finished, click <strong>Add Cat</strong> to save it to this browser.</p>
+          <h3 className="section-title">{title}</h3>
+          <p className="field-help">
+            {isEditMode
+              ? <>Update this cat by parsing a screenshot or by editing the fields manually. When finished, click <strong>{submitLabel}</strong> to save the changes to this browser.</>
+              : <>Add a cat by parsing a screenshot or by filling the fields manually. When finished, click <strong>{submitLabel}</strong> to save it to this browser.</>}
+          </p>
           <section id="manualParseSection" className={`manual-dialog-group${parseLocked ? " feature-locked" : ""}`}>
             <label className="section-label" htmlFor="manualParseFileInput">Upload screenshot</label>
             <p className="field-help">Fastest option: paste an image, drag it in, or choose a screenshot file.</p>
@@ -76,7 +87,7 @@ export function ManualCatDialog(props: Props) {
           </section>
 
           <section className="manual-dialog-group">
-            <h4 className="section-label">Add cat manually</h4>
+            <h4 className="section-label">{isEditMode ? "Edit cat manually" : "Add cat manually"}</h4>
             <p className="field-help">You can edit any parsed values here before saving, or enter everything manually if you are not using screenshot parsing.</p>
             <div className="manual-cat-fields">
               <label className="manual-field">
@@ -124,9 +135,9 @@ export function ManualCatDialog(props: Props) {
           </section>
 
           <div className="buttons compact">
-            <button type="button" className="secondary-btn" onClick={onClearDraft}>Clear Draft</button>
+            <button type="button" className="secondary-btn" onClick={onClearDraft}>{resetLabel}</button>
             <button type="button" className="secondary-btn" onClick={onClose}>Cancel</button>
-            <button type="button" className="primary-btn" onClick={onSubmit}>Add Cat</button>
+            <button type="button" className="primary-btn" onClick={onSubmit}>{submitLabel}</button>
           </div>
         </form>
       </dialog>

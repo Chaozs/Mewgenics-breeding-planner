@@ -19,6 +19,7 @@ type Props = {
   onSendFollowup: () => void;
   onApplyRecommendationAction: (action: RecommendationAction) => void;
   isRecommendationActionApplied: (action: RecommendationAction) => boolean;
+  getRecommendationActionWarning: (action: RecommendationAction) => string | null;
 };
 
 export function PlannerSection(props: Props) {
@@ -38,10 +39,13 @@ export function PlannerSection(props: Props) {
     onSendFollowup,
     onApplyRecommendationAction,
     isRecommendationActionApplied,
+    getRecommendationActionWarning,
   } = props;
 
-  const followupPrompt = analysisState.mode === "structured" ? analysisState.followupPrompt : "";
-  const recommendationCards = analysisState.mode === "structured" ? analysisState.cards : analysisState.mode === "error" ? analysisState.cards : [];
+  const hasStructuredAnalysis = analysisState.mode === "structured";
+  const followupPrompt = hasStructuredAnalysis ? analysisState.followupPrompt : "";
+  const hasSuggestedFollowupPrompt = Boolean(followupPrompt.trim());
+  const recommendationCards = hasStructuredAnalysis ? analysisState.cards : analysisState.mode === "error" ? analysisState.cards : [];
   const parsedPriorityOrder = parsePriorityOrderText(plannerConfig.priorityOrder);
   return (
     <section id="plannerAiSection" className={`panel planner-centered${plannerLocked ? " feature-locked" : ""}`}>
@@ -197,28 +201,37 @@ export function PlannerSection(props: Props) {
               {...card}
               onApplyAction={onApplyRecommendationAction}
               isActionApplied={isRecommendationActionApplied}
+              getActionWarning={getRecommendationActionWarning}
             />
           ))
         )}
       </div>
 
-      <section id="followupPanel" className="followup-panel" hidden={!followupPrompt || plannerLocked}>
+      <section id="followupPanel" className="followup-panel" hidden={!hasStructuredAnalysis || plannerLocked}>
         <h3 className="section-label">Planner Follow-up</h3>
-        <p id="followupPromptText" className="field-help">The planner needs one more input before it can finish:</p>
-        <div className="planner-guidance-box followup-guidance">
-          <span>{followupPrompt}</span>
-        </div>
+        <p id="followupPromptText" className="field-help">
+          {hasSuggestedFollowupPrompt
+            ? "The planner asked for one more input before refining the recommendations:"
+            : "Add any corrections, constraints, or preferences here to recompile the recommendations using the current analysis as context."}
+        </p>
+        {hasSuggestedFollowupPrompt ? (
+          <div className="planner-guidance-box followup-guidance">
+            <span>{followupPrompt}</span>
+          </div>
+        ) : null}
         <textarea
           id="followupResponseInput"
           rows={4}
-          placeholder="Type your response to continue..."
+          placeholder={hasSuggestedFollowupPrompt
+            ? "Type your response to continue..."
+            : "Example: keep at least 2 reflect cats, avoid trimming Room B incubators, and prefer moving duplicates before deleting them."}
           value={followupInput}
           onChange={(event) => onFollowupInputChange(event.target.value)}
           disabled={plannerLocked || analysisState.mode === "streaming"}
         />
         <div className="buttons compact">
           <button id="sendFollowupBtn" type="button" className="primary-btn" disabled={plannerLocked || analysisState.mode === "streaming" || !followupInput.trim()} onClick={onSendFollowup}>
-            Send Follow-up
+            {hasSuggestedFollowupPrompt ? "Send Follow-up" : "Recompile Suggestions"}
           </button>
         </div>
       </section>

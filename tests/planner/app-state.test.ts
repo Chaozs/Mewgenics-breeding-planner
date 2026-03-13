@@ -43,11 +43,11 @@ describe("src/planner/app-state", () => {
 SUMMARY
 * Keep your A room dense [id:hide-me]
 TRIM (STRONG)
-* Pippy [id:cat-1] - weak mutation density
+* Room B | Pippy [id:cat-1] - weak mutation density
 TRIM (MAYBE)
-* Shadow [id:cat-2] - situational hold
+* Room A | Shadow [id:cat-2] - situational hold
 MOVE
-* Baker Bean [id:cat-3] -> Room B: better incubator fit
+* Room A | Baker Bean [id:cat-3] -> Room B: better incubator fit
 ACTION REQUEST (OPTIONAL)
 None
     `, entries);
@@ -76,9 +76,9 @@ None
   it("sorts grouped recommendation items in current table order", () => {
     const result = buildStructuredResult(`
 TRIM (STRONG)
-* Pippy [id:cat-1] - later room
-* Baker Bean [id:cat-3] - first in room A
-* Shadow [id:cat-2] - second in room A
+* Room B | Pippy [id:cat-1] - later room
+* Room A | Baker Bean [id:cat-3] - first in room A
+* Room A | Shadow [id:cat-2] - second in room A
 `, entries);
 
     expect(result.cards[0].items).toEqual([
@@ -93,5 +93,26 @@ TRIM (STRONG)
   it("creates stable recommendation action keys", () => {
     expect(getRecommendationActionKey({ kind: "delete", entryId: "cat-1" })).toBe("delete:cat-1");
     expect(getRecommendationActionKey({ kind: "move", entryId: "cat-2", targetRoom: "Room C" })).toBe("move:cat-2:Room C");
+  });
+
+  it("treats None in trim and move sections as no recommendations", () => {
+    const result = buildStructuredResult(`
+SUMMARY
+* Roster is already in a good state.
+TRIM (STRONG)
+None
+TRIM (MAYBE)
+None
+MOVE
+None
+ACTION REQUEST (OPTIONAL)
+None
+`, entries);
+
+    expect(result.cards[0].title).toBe("Summary");
+    expect(result.cards[1].title).toBe("Recommended Trims");
+    expect(result.cards[1].items).toEqual([]);
+    expect(result.cards[2].items).toEqual([]);
+    expect(result.cards[3].items).toEqual([]);
   });
 });

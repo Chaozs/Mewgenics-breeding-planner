@@ -45,10 +45,12 @@ function CardListItem(
     item,
     onApplyAction,
     isActionApplied,
+    getActionWarning,
   }: {
     item: MessageCardItem;
     onApplyAction?: (action: RecommendationAction) => void;
     isActionApplied?: (action: RecommendationAction) => boolean;
+    getActionWarning?: (action: RecommendationAction) => string | null;
   },
 ) {
   const text = typeof item === "string" ? item : item.text;
@@ -61,7 +63,11 @@ function CardListItem(
   }
   const match = text.match(/^(.+?)\s*(?::|(?:-|\u2013|\u2014))\s+(.+)$/);
   const action = typeof item === "string" ? undefined : item.action;
-  const isApplied = action && isActionApplied ? isActionApplied(action) : false;
+  const actionWarning = action && getActionWarning ? getActionWarning(action) : null;
+  const isApplied = !actionWarning && action && isActionApplied ? isActionApplied(action) : false;
+  const actionLabel = action
+    ? (actionWarning || getActionLabel(action, isApplied))
+    : "";
   if (!match) {
     return (
       <li className={isApplied ? "recommendation-item-applied" : ""}>
@@ -71,10 +77,12 @@ function CardListItem(
             {" "}
             <button
               type="button"
-              className={`secondary-btn recommendation-action-btn${isApplied ? " is-applied" : ""}`}
+              className={`secondary-btn recommendation-action-btn${isApplied ? " is-applied" : ""}${actionWarning ? " is-warning" : ""}`}
+              disabled={Boolean(actionWarning)}
+              title={actionWarning || undefined}
               onClick={() => onApplyAction(action)}
             >
-              {getActionLabel(action, isApplied)}
+              {actionLabel}
             </button>
           </>
         ) : null}
@@ -92,10 +100,12 @@ function CardListItem(
           {" "}
           <button
             type="button"
-            className={`secondary-btn recommendation-action-btn${isApplied ? " is-applied" : ""}`}
+            className={`secondary-btn recommendation-action-btn${isApplied ? " is-applied" : ""}${actionWarning ? " is-warning" : ""}`}
+            disabled={Boolean(actionWarning)}
+            title={actionWarning || undefined}
             onClick={() => onApplyAction(action)}
           >
-            {getActionLabel(action, isApplied)}
+            {actionLabel}
           </button>
         </>
       ) : null}
@@ -110,9 +120,11 @@ export function SectionCard(
     className = "other-section",
     onApplyAction,
     isActionApplied,
+    getActionWarning,
   }: MessageCard & {
     onApplyAction?: (action: RecommendationAction) => void;
     isActionApplied?: (action: RecommendationAction) => boolean;
+    getActionWarning?: (action: RecommendationAction) => string | null;
   },
 ) {
   return (
@@ -128,6 +140,7 @@ export function SectionCard(
               item={item}
               onApplyAction={onApplyAction}
               isActionApplied={isActionApplied}
+              getActionWarning={getActionWarning}
             />
           ))}
         </ul>

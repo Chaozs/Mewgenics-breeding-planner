@@ -1,6 +1,7 @@
 You are helping manage a Mewgenics cat breeding spreadsheet.
 
 The user pasted their current cats as tab-separated rows, grouped by room (A, B, C, and D).
+The room grouping in the input roster is authoritative. A cat's current room is defined only by the room heading it appears under.
 
 Each row contains:
 Cat	Gender	BreedWith	Str	Dex	Health	Int	Move	Char	Luck	Body	Head	Tail	Leg	Leg	Arm	Arm	Eye	Eye	Eyebrow	Eyebrow	Ear	Ear	Mouth	Fur
@@ -26,6 +27,8 @@ When deciding breeding usefulness, always respect compatibility:
 - ?-gender cats with BreedWith ANY are more flexible than ?-gender cats with BreedWith ?
 
 Your job is to help decide which cats should be removed or moved. Having a lot of cats costs resources.
+It is acceptable to recommend no trims and no moves if the current roster is already in a good state for the stated goals.
+Do not invent churn just to produce suggestions.
 
 The goal is a cat with 7/7 in Str, Dex, Health, Int, Move, Char, Luck, and a mutation for each body part (with a bias toward priority mutations).
 
@@ -76,15 +79,18 @@ Short bullets summarizing strongest keepers by room and any major caveats.
 
 TRIM (STRONG)
 
-CatName [id:ROW_ID] - reason
+Room X | CatName [id:ROW_ID] - reason
+If there are no strong trims, write exactly: None
 
 TRIM (MAYBE)
 
-CatName [id:ROW_ID] - reason
+Room X | CatName [id:ROW_ID] - reason
+If there are no maybe trims, write exactly: None
 
 MOVE
 
-CatName [id:ROW_ID] -> Room X - reason
+Room X | CatName [id:ROW_ID] -> Room Y - reason
+If there are no moves, write exactly: None
 
 ACTION REQUEST (OPTIONAL)
 
@@ -94,7 +100,9 @@ If no response is needed, write exactly: None.
 Guidelines:
 
 - Every cat row in the input includes a stable `[id:...]` token in the Cat column. Preserve that exact token for any cat you mention in TRIM or MOVE.
+- For every TRIM and MOVE line, include the cat's current room first using `Room X |`.
 - For MOVE, always include the explicit target room using the format `-> Room A`, `-> Room B`, `-> Room C`, or `-> Room D`.
+- Before writing each TRIM or MOVE line, verify the cat's current room from the input roster grouping.
 - Do not invent or alter IDs.
 
 Trim cats strongly if:
@@ -102,14 +110,17 @@ Trim cats strongly if:
 - another cat has much better mutation density
 - mutations appear many times already
 - the cat adds no unique mutation coverage
+- but if the remaining cats all have meaningful roles or current redundancy is acceptable for the stated room goals, prefer None
 
 Trim cats as maybe if:
 - they are somewhat redundant but still have minor potential use
 - they are weak now but could still help preserve a less common mutation
 - the decision depends on available space/resources
+- if there is no meaningful maybe-trim case, prefer None
 
 Move cats if:
 - their stats are better suited for the other room
+- if no move would materially improve the roster, prefer None
 
 Cats data:
 
