@@ -24,7 +24,16 @@ import {
   SCREENSHOT_PROMPT,
   STATIC_DIR,
 } from "./config";
-import { parseSkillMappings, validateAndNormalizeCatsData } from "./planner-core";
+import {
+  parseSkillMappings,
+  validateAndNormalizeCatsData,
+} from "./planner-core";
+import {
+  ALLOWED_BREED_WITH,
+  ALLOWED_GENDERS,
+  ALLOWED_STAT_VALUES,
+  EXPECTED_COLUMNS,
+} from "../shared/planner-core";
 
 dotenv.config();
 
@@ -47,6 +56,33 @@ type AnalysisRequestValues = {
   followupRequest?: string;
   previousAnalysis?: string;
 };
+
+type ScreenshotParseResponse = {
+  cat?: unknown;
+  gender?: unknown;
+  breedWith?: unknown;
+  stats?: unknown;
+  mutations?: unknown;
+};
+
+const SCREENSHOT_STAT_KEYS = ["str", "dex", "health", "int", "move", "char", "luck"] as const;
+const SCREENSHOT_MUTATION_KEYS = [
+  "body",
+  "head",
+  "tail",
+  "leg1",
+  "leg2",
+  "arm1",
+  "arm2",
+  "eye1",
+  "eye2",
+  "eyebrow1",
+  "eyebrow2",
+  "ear1",
+  "ear2",
+  "mouth",
+  "fur",
+] as const;
 
 const PORT = APP_PORT;
 const OPENAI_STATUS_TTL_MS = 300_000;
@@ -104,6 +140,72 @@ Additional user-defined skill mappings:
 ${mappings}
 
 If the screenshot uses one of these descriptions, map it to the token on the right-hand side exactly before adding the (bodypart) suffix.`;
+}
+
+function extractJsonObject(rawText: string) {
+  const trimmed = String(rawText || "").trim();
+  const withoutFence = trimmed
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  const firstBrace = withoutFence.indexOf("{");
+  const lastBrace = withoutFence.lastIndexOf("}");
+
+  if (firstBrace < 0 || lastBrace < firstBrace) {
+    throw new Error("Parser did not return a JSON object.");
+  }
+
+  return JSON.parse(withoutFence.slice(firstBrace, lastBrace + 1)) as ScreenshotParseResponse;
+}
+
+function readScreenshotString(record: Record<string, unknown>, key: string, fallback = "") {
+  const value = record[key];
+  return typeof value === "string" ? value.trim() : fallback;
+}
+
+function buildRowFromScreenshotResponse(rawText: string) {
+  const parsed = extractJsonObject(rawText);
+  const root = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+  const stats = parsed.stats && typeof parsed.stats === "object" ? parsed.stats as Record<string, unknown> : null;
+  const mutations = parsed.mutations && typeof parsed.mutations === "object" ? parsed.mutations as Record<string, unknown> : {};
+
+  if (!stats) {
+    throw new Error("Parser response was missing the stats object.");
+  }
+
+  const gender = readScreenshotString(root, "gender", "?").toUpperCase();
+  if (!ALLOWED_GENDERS.has(gender)) {
+    throw new Error(`Parser returned an invalid gender value: "${gender}".`);
+  }
+
+  const breedWith = readScreenshotString(root, "breedWith", "").toUpperCase();
+  if (!ALLOWED_BREED_WITH.has(breedWith)) {
+    throw new Error(`Parser returned an invalid BreedWith value: "${breedWith}".`);
+  }
+
+  const statValues = SCREENSHOT_STAT_KEYS.map((key) => {
+    const value = readScreenshotString(stats, key);
+    if (!ALLOWED_STAT_VALUES.has(value)) {
+      throw new Error(`Parser returned an invalid ${key} stat value: "${value}".`);
+    }
+    return value;
+  });
+
+  const mutationValues = SCREENSHOT_MUTATION_KEYS.map((key) => readScreenshotString(mutations, key));
+  const columns = [
+    readScreenshotString(root, "cat"),
+    gender,
+    breedWith,
+    ...statValues,
+    ...mutationValues,
+  ];
+
+  if (columns.length !== EXPECTED_COLUMNS) {
+    throw new Error(`Parser did not return the expected ${EXPECTED_COLUMNS} columns.`);
+  }
+
+  return columns.join("\t");
 }
 
 async function getOpenAiStatus(forceRefresh = false): Promise<Omit<OpenAiStatus, "checkedAt">> {
@@ -395,14 +497,13 @@ app.post("/parse", upload.single("image"), async (request, response) => {
           role: "user",
           content: [
             { type: "input_text", text: buildScreenshotPrompt(skillMappings) },
-            { type: "input_image", image_url: `data:${mimeType};base64,${base64Image}`, detail: "auto" },
+            { type: "input_image", image_url: `data:${mimeType};base64,${base64Image}`, detail: "high" },
           ],
         },
       ],
     });
 
-    // Preserve trailing tabs so blank columns survive round-trips.
-    response.json({ row: modelResponse.output_text.replace(/[\r\n]+$/, "") });
+    response.json({ row: buildRowFromScreenshotResponse(modelResponse.output_text) });
   } catch (error) {
     response.status(502).json({ error: String(error || "Screenshot parsing request failed.") });
   }

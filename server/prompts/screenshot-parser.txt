@@ -1,9 +1,39 @@
 You are parsing a Mewgenics cat screenshot.
 
-Return ONE TAB-SEPARATED spreadsheet row in this exact format:
+Return ONLY a valid JSON object. Do not return markdown. Do not return prose.
 
-Cat	Gender	BreedWith	Str	Dex	Health	Int	Move	Char	Luck	Body	Head	Tail	Leg	Leg	Arm	Arm	Eye	Eye	Eyebrow	Eyebrow	Ear	Ear	Mouth	Fur
-
+Use this exact schema:
+{
+  "cat": "",
+  "gender": "?",
+  "breedWith": "",
+  "stats": {
+    "str": "7",
+    "dex": "7",
+    "health": "7",
+    "int": "7",
+    "move": "7",
+    "char": "7",
+    "luck": "7"
+  },
+  "mutations": {
+    "body": "",
+    "head": "",
+    "tail": "",
+    "leg1": "",
+    "leg2": "",
+    "arm1": "",
+    "arm2": "",
+    "eye1": "",
+    "eye2": "",
+    "eyebrow1": "",
+    "eyebrow2": "",
+    "ear1": "",
+    "ear2": "",
+    "mouth": "",
+    "fur": ""
+  }
+}
 
 Rules:
 
@@ -23,11 +53,24 @@ BreedWith meanings:
 - ? = can only breed with ? cats
 - ANY = can breed with any gender
 
-Gender should be "M" or "F" for male or female. Some cats are "?" and it should be set to "?"
+Gender should be "M" or "F" for male or female. Some cats are "?" and it should be set to "?".
 
 Stats:
-Look at the two numbers for each stat.
-Output the RIGHT number exactly as a value from 1-7.
+- Look at the two numbers for each stat.
+- Output the RIGHT number exactly as a value from 1-7.
+- Do NOT infer stats by row order alone. Identify each stat by its icon.
+- The stat icons map as follows:
+  - flexed arm icon = Strength = str
+  - bow-and-arrow icon = Dexterity = dex
+  - heart/medical cross icon = Constitution = health
+  - lightbulb icon = Intelligence = int
+  - boot with motion lines icon = Speed = move
+  - lips icon = Charisma = char
+  - clover icon = Luck = luck
+- Constitution means Health.
+- Dexterity means Dex.
+- Speed means Move.
+- If an icon is small, partially cut off, or blurry, use the icon shape and surrounding numbers. Do not swap health/dex/move/char/luck because of approximate row position.
 
 Examples:
 - if the right number is 7 -> output 7
@@ -121,17 +164,27 @@ Examples:
 +2 Move, -1 Dex -> +2move-1dex
 +2 Move, -1 Luck -> +2move-1luck
 
-If a slot is empty -> leave the column empty
+If a slot is empty -> return an empty string for that JSON field.
 
-mutations labeled "Defect" should NOT be included.
+Mutations labeled "Defect" should NOT be included.
 
 For mutations not in this dictionary, follow the same format.
 
-The output should be similar to:
-Pippy	F	M	1	1	1	1	1	1	1		+1health(head)	knockback(tail)	+2luck-1move(leg)				+2char-1luck(eye)						
+Mutation slot rules:
+- body -> body
+- head -> head
+- tail -> tail
+- first leg slot -> leg1
+- second leg slot -> leg2
+- first arm slot -> arm1
+- second arm slot -> arm2
+- first eye slot -> eye1
+- second eye slot -> eye2
+- first eyebrow slot -> eyebrow1
+- second eyebrow slot -> eyebrow2
+- first ear slot -> ear1
+- second ear slot -> ear2
+- mouth -> mouth
+- fur -> fur
 
-Remember that the mutation needs to appear under the right category, according to:
-Cat Gender BreedWith Str Dex Health Int Move Char Luck Body Head Tail Leg Leg Arm Arm Eye Eye Eyebrow Eyebrow Ear Ear Mouth Fur.
-If a body part appears twice in the columns (2 legs, 2 arms, 2 eyes, 2 eyebrows), always use the left-most column and leave the second duplicate column empty.
-
-Return ONLY the tab-separated row.
+If a body part appears twice in the screenshot (2 legs, 2 arms, 2 eyes, 2 eyebrows), put the mutation in the left-most matching JSON field first and leave the second one empty unless a second separate mutation is visibly present.

@@ -18,6 +18,7 @@ type Props = {
   onFollowupInputChange: (value: string) => void;
   onSendFollowup: () => void;
   onApplyRecommendationAction: (action: RecommendationAction) => void;
+  onOpenRecommendationEntry: (entryId: string) => void;
   isRecommendationActionApplied: (action: RecommendationAction) => boolean;
   getRecommendationActionWarning: (action: RecommendationAction) => string | null;
 };
@@ -38,6 +39,7 @@ export function PlannerSection(props: Props) {
     onFollowupInputChange,
     onSendFollowup,
     onApplyRecommendationAction,
+    onOpenRecommendationEntry,
     isRecommendationActionApplied,
     getRecommendationActionWarning,
   } = props;
@@ -200,6 +202,7 @@ export function PlannerSection(props: Props) {
               key={`${card.title}-${index}`}
               {...card}
               onApplyAction={onApplyRecommendationAction}
+              onOpenEntry={onOpenRecommendationEntry}
               isActionApplied={isRecommendationActionApplied}
               getActionWarning={getRecommendationActionWarning}
             />

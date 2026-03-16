@@ -9,7 +9,7 @@ import { usePlannerConfigState } from "./hooks/usePlannerConfigState";
 import { useQuickstartState } from "./hooks/useQuickstartState";
 import { useStoredCatsState } from "./hooks/useStoredCatsState";
 import { getEnabledRooms } from "./planner/room-config";
-import type { Entry, ManualDraft, MessageCard } from "./types";
+import type { ActionHistorySnapshot, Entry, ManualDraft, MessageCard } from "./types";
 import {
   clearManualCatDraft,
   createManualFormValues,
@@ -41,11 +41,6 @@ type DropTarget = {
 type ParseStatus = {
   text: string;
   isError: boolean;
-};
-
-type ActionHistorySnapshot = {
-  rawText: string;
-  ids: string[];
 };
 
 function App() {
@@ -129,6 +124,20 @@ function App() {
     setActionHistory((current) => [...current, snapshot].slice(-100));
   }
 
+  function undoLastAction(statusCard?: MessageCard) {
+    const snapshot = actionHistory[actionHistory.length - 1];
+    if (!snapshot) {
+      return;
+    }
+
+    setActionHistory((current) => current.slice(0, -1));
+    writeStoredData(snapshot.rawText, snapshot.ids);
+    if (!snapshot.preserveAnalysis) {
+      clearAnalysis();
+    }
+    setCurrentCatsCards([statusCard || { title: "Undo Applied", items: ["Reverted the last row change."], className: "move-section" }]);
+  }
+
   const {
     analysisState,
     followupInput,
@@ -148,6 +157,8 @@ function App() {
     storedCatIds,
     skillMappingsMap,
     pushActionSnapshot,
+    lastActionSnapshot: actionHistory[actionHistory.length - 1] || null,
+    undoLastAction,
     writeStoredData,
     showCurrentCatsCards: setCurrentCatsCards,
     onHighlightEntry: setHighlightedEntryId,
@@ -210,14 +221,18 @@ function App() {
         if (item.kind === "file" && item.type.startsWith("image/")) {
           if (manualParseLocked) {
             event.preventDefault();
-            openAddManualDialog();
+            if (!manualOpen) {
+              openAddManualDialog();
+            }
             return;
           }
 
           const file = item.getAsFile();
           if (file) {
             event.preventDefault();
-            openAddManualDialog();
+            if (!manualOpen) {
+              openAddManualDialog();
+            }
             void handleManualParse(file);
           }
           return;
@@ -229,7 +244,7 @@ function App() {
     return () => {
       window.removeEventListener("paste", handleWindowPaste);
     };
-  }, [isManualEditMode, manualParseLocked, plannerConfig.skillMappings, manualPreviewUrl, openAiStatus.enabled]);
+  }, [manualOpen, manualParseLocked, plannerConfig.skillMappings, manualPreviewUrl, openAiStatus.enabled]);
 
   function handleImportSave() {
     if (!importText.trim()) {
@@ -456,16 +471,7 @@ function App() {
           onFocusedEntryHandled={() => setHighlightedEntryId(null)}
           onOpenManual={openAddManualDialog}
           onExport={() => void handleExportSpreadsheetData()}
-          onUndo={() => {
-            const snapshot = actionHistory[actionHistory.length - 1];
-            if (!snapshot) {
-              return;
-            }
-            setActionHistory((current) => current.slice(0, -1));
-            writeStoredData(snapshot.rawText, snapshot.ids);
-            clearAnalysis();
-            setCurrentCatsCards([{ title: "Undo Applied", items: ["Reverted the last row change."], className: "move-section" }]);
-          }}
+          onUndo={() => undoLastAction()}
           onClear={() => {
             writeStoredData("", []);
             setActionHistory([]);
@@ -549,6 +555,14 @@ function App() {
           onFollowupInputChange={setFollowupInput}
           onSendFollowup={() => void handleAnalyze("/analyze-followup-stream", followupInput)}
           onApplyRecommendationAction={handleApplyRecommendationAction}
+          onOpenRecommendationEntry={(entryId) => {
+            const entry = parsedStored.rows.find((currentEntry) => currentEntry.id === entryId);
+            if (!entry) {
+              setCurrentCatsCards([{ title: "Cat Not Found", items: ["That cat no longer exists in browser data."], className: "strong-section" }]);
+              return;
+            }
+            openEditManualDialog(entry);
+          }}
           isRecommendationActionApplied={isRecommendationActionApplied}
           getRecommendationActionWarning={getRecommendationActionWarning}
         />

@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { usePlannerAnalysis } from "../../src/hooks/usePlannerAnalysis";
-import type { Entry, PlannerConfig } from "../../src/types";
+import type { ActionHistorySnapshot, Entry, PlannerConfig } from "../../src/types";
 import { ROOM_A, ROOM_B } from "../../shared/rooms";
 
 jest.mock("../../src/planner/api", () => ({
@@ -49,6 +49,8 @@ describe("usePlannerAnalysis", () => {
       storedCatIds: [],
       skillMappingsMap: new Map(),
       pushActionSnapshot: jest.fn(),
+      lastActionSnapshot: null,
+      undoLastAction: jest.fn(),
       writeStoredData: jest.fn(),
       showCurrentCatsCards,
     }));
@@ -82,6 +84,8 @@ describe("usePlannerAnalysis", () => {
       storedCatIds: ["cat-1"],
       skillMappingsMap: new Map(),
       pushActionSnapshot: jest.fn(),
+      lastActionSnapshot: null,
+      undoLastAction: jest.fn(),
       writeStoredData: jest.fn(),
       showCurrentCatsCards: jest.fn(),
     }));
@@ -121,6 +125,8 @@ describe("usePlannerAnalysis", () => {
       storedCatIds: ["cat-1"],
       skillMappingsMap: new Map(),
       pushActionSnapshot: jest.fn(),
+      lastActionSnapshot: null,
+      undoLastAction: jest.fn(),
       writeStoredData: jest.fn(),
       showCurrentCatsCards: jest.fn(),
     }));
@@ -151,6 +157,8 @@ describe("usePlannerAnalysis", () => {
       storedCatIds: ["cat-1"],
       skillMappingsMap: new Map(),
       pushActionSnapshot: jest.fn(),
+      lastActionSnapshot: null,
+      undoLastAction: jest.fn(),
       writeStoredData: jest.fn(),
       showCurrentCatsCards: jest.fn(),
     }));
@@ -187,6 +195,8 @@ describe("usePlannerAnalysis", () => {
       storedCatIds: ["cat-1"],
       skillMappingsMap: new Map(),
       pushActionSnapshot: jest.fn(),
+      lastActionSnapshot: null,
+      undoLastAction: jest.fn(),
       writeStoredData: jest.fn(),
       showCurrentCatsCards: jest.fn(),
     }));
@@ -213,7 +223,14 @@ describe("usePlannerAnalysis", () => {
     const pushActionSnapshot = jest.fn();
     const showCurrentCatsCards = jest.fn();
     const onHighlightEntry = jest.fn();
-    const { result, rerender } = renderHook((props: { rows: Entry[] }) => usePlannerAnalysis({
+    const undoLastAction = jest.fn();
+    const moveSnapshot: ActionHistorySnapshot = {
+      rawText: "Room A\nPippy\tF\tM\t7\t7\t7\t7\t7\t7\t7\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t",
+      ids: ["cat-1", "cat-2", "cat-3"],
+      preserveAnalysis: true,
+      recommendationActionKey: "move:cat-1:Room B",
+    };
+    const { result, rerender } = renderHook((props: { rows: Entry[]; lastActionSnapshot: ActionHistorySnapshot | null }) => usePlannerAnalysis({
       plannerConfig,
       plannerLocked: false,
       plannerLockMessage: "",
@@ -222,11 +239,13 @@ describe("usePlannerAnalysis", () => {
       storedCatIds: props.rows.map((row) => row.id),
       skillMappingsMap: new Map(),
       pushActionSnapshot,
+      lastActionSnapshot: props.lastActionSnapshot,
+      undoLastAction,
       writeStoredData,
       showCurrentCatsCards,
       onHighlightEntry,
     }), {
-      initialProps: { rows: [buildEntry("cat-1"), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")] },
+      initialProps: { rows: [buildEntry("cat-1"), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")], lastActionSnapshot: null },
     });
 
     act(() => {
@@ -239,24 +258,44 @@ describe("usePlannerAnalysis", () => {
       ["cat-1", "cat-2", "cat-3"],
     );
     expect(onHighlightEntry).toHaveBeenCalledWith("cat-1");
-    expect(result.current.isRecommendationActionApplied({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe(true);
+    expect(pushActionSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      preserveAnalysis: true,
+      recommendationActionKey: "move:cat-1:Room B",
+    }));
+    expect(result.current.isRecommendationActionApplied({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe(false);
 
-    rerender({ rows: [buildEntry("cat-1", ROOM_B), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")] });
+    rerender({
+      rows: [buildEntry("cat-1", ROOM_B), buildEntry("cat-2", ROOM_B, "Baker"), buildEntry("cat-3", ROOM_B, "Shadow")],
+      lastActionSnapshot: moveSnapshot,
+    });
+
+    expect(result.current.isRecommendationActionApplied({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe(true);
 
     act(() => {
       result.current.handleApplyRecommendationAction({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B });
     });
 
-    expect(result.current.isRecommendationActionApplied({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe(false);
+    expect(undoLastAction).toHaveBeenCalledWith({
+      title: "Recommendation Undo Applied",
+      items: ["Reverted the last recommendation action."],
+      className: "move-section",
+    });
   });
 
   it("applies and undoes delete recommendations", () => {
     const writeStoredData = jest.fn();
     const pushActionSnapshot = jest.fn();
     const showCurrentCatsCards = jest.fn();
+    const undoLastAction = jest.fn();
     const originalRows = [buildEntry("cat-1"), buildEntry("cat-2", ROOM_A, "Baker")];
+    const deleteSnapshot: ActionHistorySnapshot = {
+      rawText: "Room A\nPippy\tF\tM\t7\t7\t7\t7\t7\t7\t7\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\nBaker\tF\tM\t7\t7\t7\t7\t7\t7\t7\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t",
+      ids: ["cat-1", "cat-2"],
+      preserveAnalysis: true,
+      recommendationActionKey: "delete:cat-1",
+    };
 
-    const { result, rerender } = renderHook((props: { rows: Entry[] }) => usePlannerAnalysis({
+    const { result, rerender } = renderHook((props: { rows: Entry[]; lastActionSnapshot: ActionHistorySnapshot | null }) => usePlannerAnalysis({
       plannerConfig,
       plannerLocked: false,
       plannerLockMessage: "",
@@ -265,10 +304,12 @@ describe("usePlannerAnalysis", () => {
       storedCatIds: props.rows.map((row) => row.id),
       skillMappingsMap: new Map(),
       pushActionSnapshot,
+      lastActionSnapshot: props.lastActionSnapshot,
+      undoLastAction,
       writeStoredData,
       showCurrentCatsCards,
     }), {
-      initialProps: { rows: originalRows },
+      initialProps: { rows: originalRows, lastActionSnapshot: null },
     });
 
     act(() => {
@@ -279,20 +320,26 @@ describe("usePlannerAnalysis", () => {
       expect.stringContaining("Baker"),
       ["cat-2"],
     );
+    expect(pushActionSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      preserveAnalysis: true,
+      recommendationActionKey: "delete:cat-1",
+    }));
+    expect(result.current.isRecommendationActionApplied({ kind: "delete", entryId: "cat-1" })).toBe(false);
+    expect(result.current.getRecommendationActionWarning({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBeNull();
+
+    rerender({ rows: [buildEntry("cat-2", ROOM_A, "Baker")], lastActionSnapshot: deleteSnapshot });
+
     expect(result.current.isRecommendationActionApplied({ kind: "delete", entryId: "cat-1" })).toBe(true);
     expect(result.current.getRecommendationActionWarning({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBe("Already Deleted");
-
-    rerender({ rows: [buildEntry("cat-2", ROOM_A, "Baker")] });
 
     act(() => {
       result.current.handleApplyRecommendationAction({ kind: "delete", entryId: "cat-1" });
     });
 
-    expect(writeStoredData).toHaveBeenLastCalledWith(
-      expect.stringContaining("Pippy"),
-      ["cat-1", "cat-2"],
-    );
-    expect(result.current.isRecommendationActionApplied({ kind: "delete", entryId: "cat-1" })).toBe(false);
-    expect(result.current.getRecommendationActionWarning({ kind: "move", entryId: "cat-1", targetRoom: ROOM_B })).toBeNull();
+    expect(undoLastAction).toHaveBeenCalledWith({
+      title: "Recommendation Undo Applied",
+      items: ["Reverted the last recommendation action."],
+      className: "move-section",
+    });
   });
 });

@@ -46,11 +46,13 @@ function CardListItem(
     onApplyAction,
     isActionApplied,
     getActionWarning,
+    onOpenEntry,
   }: {
     item: MessageCardItem;
     onApplyAction?: (action: RecommendationAction) => void;
     isActionApplied?: (action: RecommendationAction) => boolean;
     getActionWarning?: (action: RecommendationAction) => string | null;
+    onOpenEntry?: (entryId: string) => void;
   },
 ) {
   const text = typeof item === "string" ? item : item.text;
@@ -65,6 +67,7 @@ function CardListItem(
   const action = typeof item === "string" ? undefined : item.action;
   const actionWarning = action && getActionWarning ? getActionWarning(action) : null;
   const isApplied = !actionWarning && action && isActionApplied ? isActionApplied(action) : false;
+  const canOpenEntry = action?.kind === "delete" && !isApplied && Boolean(onOpenEntry);
   const actionLabel = action
     ? (actionWarning || getActionLabel(action, isApplied))
     : "";
@@ -72,6 +75,18 @@ function CardListItem(
     return (
       <li className={isApplied ? "recommendation-item-applied" : ""}>
         <InlineMarkdown text={text} />
+        {canOpenEntry && action ? (
+          <>
+            {" "}
+            <button
+              type="button"
+              className="secondary-btn recommendation-action-btn"
+              onClick={() => onOpenEntry?.(action.entryId)}
+            >
+              Open Cat
+            </button>
+          </>
+        ) : null}
         {action && onApplyAction ? (
           <>
             {" "}
@@ -95,6 +110,18 @@ function CardListItem(
       <strong>{stripInlineMarkdownWrapper(match[1])}</strong>
       {": "}
       <InlineMarkdown text={match[2].trim()} />
+      {canOpenEntry && action ? (
+        <>
+          {" "}
+          <button
+            type="button"
+            className="secondary-btn recommendation-action-btn"
+            onClick={() => onOpenEntry?.(action.entryId)}
+          >
+            Open Cat
+          </button>
+        </>
+      ) : null}
       {action && onApplyAction ? (
         <>
           {" "}
@@ -121,10 +148,12 @@ export function SectionCard(
     onApplyAction,
     isActionApplied,
     getActionWarning,
+    onOpenEntry,
   }: MessageCard & {
     onApplyAction?: (action: RecommendationAction) => void;
     isActionApplied?: (action: RecommendationAction) => boolean;
     getActionWarning?: (action: RecommendationAction) => string | null;
+    onOpenEntry?: (entryId: string) => void;
   },
 ) {
   return (
@@ -141,6 +170,7 @@ export function SectionCard(
               onApplyAction={onApplyAction}
               isActionApplied={isActionApplied}
               getActionWarning={getActionWarning}
+              onOpenEntry={onOpenEntry}
             />
           ))}
         </ul>

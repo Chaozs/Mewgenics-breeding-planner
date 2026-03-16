@@ -4,19 +4,11 @@ import { streamPlannerAnalysis } from "../planner/api";
 import { buildStructuredResult, getNoDataCards, getRecommendationActionKey } from "../planner/app-state";
 import { getEnabledRooms } from "../planner/room-config";
 import { insertEntryAtTopOfRoom, NO_DATA_STEPS, sanitizeLiveOutputText, serializeEntries, validateAndNormalizeCatsData } from "../planner/utils";
-import type { Entry, MessageCard, PlannerAnalysisState, PlannerConfig, RecommendationAction } from "../types";
-
-type RecommendationUndoState =
-  | { kind: "restore-delete"; entry: Entry; index: number }
-  | { kind: "undo-move"; entryId: string; previousRoom: string; previousIndex: number };
-
-type ActionHistorySnapshot = {
-  rawText: string;
-  ids: string[];
-};
+import type { ActionHistorySnapshot, Entry, MessageCard, PlannerAnalysisState, PlannerConfig, RecommendationAction } from "../types";
 
 type PersistOptions = {
   preserveAnalysis?: boolean;
+  historySnapshot?: Partial<ActionHistorySnapshot>;
 };
 
 type ClearAnalysisOptions = {
@@ -32,6 +24,8 @@ type UsePlannerAnalysisOptions = {
   storedCatIds: string[];
   skillMappingsMap: Map<string, string>;
   pushActionSnapshot: (snapshot: ActionHistorySnapshot) => void;
+  lastActionSnapshot: ActionHistorySnapshot | null;
+  undoLastAction: (statusCard?: MessageCard) => void;
   writeStoredData: (nextRaw: string, nextIds: string[]) => void;
   showCurrentCatsCards: (cards: MessageCard[]) => void;
   onHighlightEntry?: (entryId: string) => void;
@@ -60,6 +54,8 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
     storedCatIds,
     skillMappingsMap,
     pushActionSnapshot,
+    lastActionSnapshot,
+    undoLastAction,
     writeStoredData,
     showCurrentCatsCards,
     onHighlightEntry,
@@ -67,17 +63,19 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
 
   const [analysisState, setAnalysisState] = useState<PlannerAnalysisState>(getIdleState(false));
   const [followupInput, setFollowupInput] = useState("");
-  const [appliedRecommendationUndos, setAppliedRecommendationUndos] = useState<Record<string, RecommendationUndoState>>({});
 
   const clearAnalysis = useCallback((clearOptions: ClearAnalysisOptions = {}) => {
     const hasRows = clearOptions.hasRows ?? parsedRows.length > 0;
-    setAppliedRecommendationUndos({});
     setAnalysisState(getIdleState(hasRows));
     setFollowupInput("");
   }, [parsedRows.length]);
 
   const persistNextEntries = useCallback((nextEntries: Entry[], statusCard?: MessageCard, persistOptions: PersistOptions = {}) => {
-    pushActionSnapshot({ rawText: storedCatsText, ids: storedCatIds });
+    pushActionSnapshot({
+      rawText: storedCatsText,
+      ids: storedCatIds,
+      ...persistOptions.historySnapshot,
+    });
     writeStoredData(serializeEntries(nextEntries), nextEntries.map((entry) => entry.id));
     if (!persistOptions.preserveAnalysis) {
       clearAnalysis({ hasRows: nextEntries.length > 0 });
@@ -124,7 +122,6 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
       liveOutput: "",
       followupPrompt: "",
     });
-    setAppliedRecommendationUndos({});
 
     const result = await streamPlannerAnalysis({
       endpoint,
@@ -185,57 +182,21 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
     setFollowupInput("");
   }, [analysisState, parsedRows, plannerConfig, plannerLockMessage, plannerLocked, skillMappingsMap, storedCatsText]);
 
+  const isRecommendationAppliedToCurrentRows = useCallback((action: RecommendationAction) => {
+    const entry = parsedRows.find((currentEntry) => currentEntry.id === action.entryId);
+    if (action.kind === "delete") {
+      return !entry;
+    }
+    return entry?.room === action.targetRoom;
+  }, [parsedRows]);
+
   const handleApplyRecommendationAction = useCallback((action: RecommendationAction) => {
     const actionKey = getRecommendationActionKey(action);
-    const existingUndo = appliedRecommendationUndos[actionKey];
-    if (existingUndo) {
-      if (existingUndo.kind === "restore-delete") {
-        if (parsedRows.some((entry) => entry.id === existingUndo.entry.id)) {
-          setAppliedRecommendationUndos((current) => {
-            const next = { ...current };
-            delete next[actionKey];
-            return next;
-          });
-          return;
-        }
-
-        const nextEntries = [...parsedRows];
-        nextEntries.splice(
-          Math.max(0, Math.min(existingUndo.index, nextEntries.length)),
-          0,
-          cloneEntry(existingUndo.entry),
-        );
-        persistNextEntries(nextEntries, {
-          title: "Recommendation Undo Applied",
-          items: [`Restored ${existingUndo.entry.columns[0] || "cat"} to browser data.`],
-          className: "move-section",
-        }, { preserveAnalysis: true });
-      } else {
-        const currentIndex = parsedRows.findIndex((entry) => entry.id === existingUndo.entryId);
-        if (currentIndex < 0) {
-          showCurrentCatsCards([{ title: "Undo Could Not Be Applied", items: ["That cat no longer exists in browser data."], className: "strong-section" }]);
-          return;
-        }
-
-        const nextEntries = parsedRows.map((entry) => cloneEntry(entry));
-        const [entry] = nextEntries.splice(currentIndex, 1);
-        entry.room = existingUndo.previousRoom;
-        nextEntries.splice(
-          Math.max(0, Math.min(existingUndo.previousIndex, nextEntries.length)),
-          0,
-          entry,
-        );
-        persistNextEntries(nextEntries, {
-          title: "Recommendation Undo Applied",
-          items: [`Moved ${entry.columns[0] || "cat"} back to ${existingUndo.previousRoom}.`],
-          className: "move-section",
-        }, { preserveAnalysis: true });
-      }
-
-      setAppliedRecommendationUndos((current) => {
-        const next = { ...current };
-        delete next[actionKey];
-        return next;
+    if (lastActionSnapshot?.recommendationActionKey === actionKey && isRecommendationAppliedToCurrentRows(action)) {
+      undoLastAction({
+        title: "Recommendation Undo Applied",
+        items: ["Reverted the last recommendation action."],
+        className: "move-section",
       });
       return;
     }
@@ -252,15 +213,13 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
         title: "Recommendation Applied",
         items: [`Deleted ${target.columns[0] || "cat"} from browser data.`],
         className: "move-section",
-      }, { preserveAnalysis: true });
-      setAppliedRecommendationUndos((current) => ({
-        ...current,
-        [actionKey]: {
-          kind: "restore-delete",
-          entry: cloneEntry(target),
-          index: entryIndex,
+      }, {
+        preserveAnalysis: true,
+        historySnapshot: {
+          preserveAnalysis: true,
+          recommendationActionKey: actionKey,
         },
-      }));
+      });
       return;
     }
 
@@ -280,29 +239,37 @@ export function usePlannerAnalysis(options: UsePlannerAnalysisOptions) {
       title: "Recommendation Applied",
       items: [`Moved ${target.columns[0] || "cat"} to ${action.targetRoom}.`],
       className: "move-section",
-    }, { preserveAnalysis: true });
-    onHighlightEntry?.(action.entryId);
-    setAppliedRecommendationUndos((current) => ({
-      ...current,
-      [actionKey]: {
-        kind: "undo-move",
-        entryId: action.entryId,
-        previousRoom: target.room,
-        previousIndex: entryIndex,
+    }, {
+      preserveAnalysis: true,
+      historySnapshot: {
+        preserveAnalysis: true,
+        recommendationActionKey: actionKey,
       },
-    }));
-  }, [appliedRecommendationUndos, onHighlightEntry, parsedRows, persistNextEntries, showCurrentCatsCards]);
+    });
+    onHighlightEntry?.(action.entryId);
+  }, [isRecommendationAppliedToCurrentRows, lastActionSnapshot, onHighlightEntry, parsedRows, persistNextEntries, showCurrentCatsCards, undoLastAction]);
 
   const isRecommendationActionApplied = useCallback((action: RecommendationAction) => (
-    Boolean(appliedRecommendationUndos[getRecommendationActionKey(action)])
-  ), [appliedRecommendationUndos]);
+    lastActionSnapshot?.recommendationActionKey === getRecommendationActionKey(action)
+    && isRecommendationAppliedToCurrentRows(action)
+  ), [isRecommendationAppliedToCurrentRows, lastActionSnapshot]);
 
   const getRecommendationActionWarning = useCallback((action: RecommendationAction) => {
-    if (action.kind === "move" && appliedRecommendationUndos[`delete:${action.entryId}`]) {
+    if (lastActionSnapshot?.recommendationActionKey === getRecommendationActionKey(action) && isRecommendationAppliedToCurrentRows(action)) {
+      return null;
+    }
+
+    const entry = parsedRows.find((currentEntry) => currentEntry.id === action.entryId);
+    if (!entry) {
       return "Already Deleted";
     }
+
+    if (action.kind === "move" && entry.room === action.targetRoom) {
+      return `Already in ${action.targetRoom}`;
+    }
+
     return null;
-  }, [appliedRecommendationUndos]);
+  }, [isRecommendationAppliedToCurrentRows, lastActionSnapshot, parsedRows]);
 
   useEffect(() => {
     if (analysisState.mode === "idle" && !storedCatsText.trim()) {

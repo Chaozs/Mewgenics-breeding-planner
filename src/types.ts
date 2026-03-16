@@ -54,6 +54,13 @@ export type OpenAiStatus = {
   message: string;
 };
 
+export type ActionHistorySnapshot = {
+  rawText: string;
+  ids: string[];
+  preserveAnalysis?: boolean;
+  recommendationActionKey?: string;
+};
+
 export type StructuredAnalysis = {
   summary: string[];
   trimStrong: string[];

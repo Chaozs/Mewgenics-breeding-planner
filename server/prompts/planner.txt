@@ -71,6 +71,19 @@ For each body part determine the strongest mutations worth keeping.
 Body part, and mutation priority order:
 <<PRIORITY_ORDER>>
 
+Interpret priority order strictly:
+- `mutationA -> mutationB -> mutationC -> any` means mutationA is best, mutationB is next, mutationC is next, and any other mutation for that body part is lower priority than all listed mutations.
+- `any` is only a fallback bucket. It does NOT mean all mutations are equal.
+- A listed mutation should generally be valued more than an unlisted mutation in the same body part, even if the unlisted mutation is still usable.
+- Blank slots are lower priority than any useful mutation, but a low-priority mutation can still be worse than a high-priority mutation carrier with weaker stats if that mutation is hard to replace.
+- When comparing two cats with the same body part filled, prefer the cat carrying the higher-ranked mutation for that body part unless there is a strong stat, density, or room-role reason not to.
+- Treat the priority tokens literally. Do not rename, soften, or ignore them just because they are uncommon.
+
+Priority-order example:
+- If mouth priority is `bonusAttackChance -> leech -> bleed -> any`, then mouth cats with `bonusAttackChance(mouth)` are more valuable than `leech(mouth)`, which are more valuable than `bleed(mouth)`, which are more valuable than other mouth mutations not listed.
+- Do not treat `bonusAttackChance(mouth)` as interchangeable with `leech(mouth)` or generic `any`.
+- If a recommendation would trim or devalue a cat carrying a highest-priority mutation like `bonusAttackChance(mouth)`, explain the tradeoff explicitly.
+
 Output format:
 
 SUMMARY
