@@ -4,6 +4,12 @@ A fan-made Mewgenics breeding planner with a React + TypeScript frontend and a T
 
 Fan-made tool only. This project is not affiliated with, sponsored by, or endorsed by Mewgenics or its creators.
 
+## Demo
+
+This recording shows the planner customization flow, including prompt customization and the resulting analysis output.
+
+![Planner Customization And Analysis Demo](Docs/demo.gif)
+
 ## What This App Can Do
 
 This app is designed to help you import, organize, review, and analyze Mewgenics breeding data in one place.
@@ -51,6 +57,8 @@ When GPT features are enabled, the app can analyze your current cats and produce
 - follow-up prompts when more input is needed
 
 Supported move and delete recommendations can be applied directly from the result cards, and then undone from the same output.
+
+The full customization plus analysis flow is also shown in the demo above.
 
 ![Recommendations](Docs/6_recommendations.png)
 

@@ -397,19 +397,22 @@ export function CurrentCatsPanel(props: Props) {
                                 onDragStart={() => onDragStart(index)}
                                 onDragEnd={onDragEnd}
                               >
-                                ===
+                                <span className="row-drag-glyph" aria-hidden="true" />
+                                <span className="sr-only">Drag row</span>
                               </button>
                                 <div className={`row-actions-menu-shell${isActionMenuOpen ? " menu-open" : ""}`} onClick={(event) => event.stopPropagation()}>
                                   <button
                                     type="button"
-                                    className="row-action-btn row-actions-toggle"
+                                    className="row-action-btn icon-btn row-actions-toggle"
+                                    aria-label="Row actions"
                                     aria-expanded={isActionMenuOpen}
                                     ref={(element) => {
                                       actionButtonRefs.current.set(entry.id, element);
                                     }}
                                     onClick={(event) => toggleActionMenu(entry.id, event.currentTarget)}
                                   >
-                                    Actions
+                                    <span className="row-menu-glyph" aria-hidden="true" />
+                                    <span className="sr-only">Actions</span>
                                   </button>
                                 {isActionMenuOpen && typeof document !== "undefined"
                                   ? createPortal(
